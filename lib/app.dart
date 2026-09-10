@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/i18n/i18n_controller.dart';
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+import 'shared/widgets/error_state.dart';
+
+class MzCustomerApp extends ConsumerWidget {
+  const MzCustomerApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final i18n = ref.watch(i18nControllerProvider);
+    final router = ref.watch(routerProvider);
+    const fallback = I18nBundle(locale: Locale('en'), strings: {});
+    final bundle = i18n.asData?.value ?? fallback;
+
+    if (i18n.hasError && !i18n.hasValue) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: ErrorState(
+            i18n: fallback,
+            error: i18n.error ?? 'error',
+            onRetry: () => ref.invalidate(i18nControllerProvider),
+          ),
+        ),
+      );
+    }
+
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      title: bundle.t('app.name'),
+      theme: AppTheme.light(bundle.locale),
+      locale: bundle.locale,
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      routerConfig: router,
+    );
+  }
+}

@@ -1,0 +1,161 @@
+---
+description: Flutter Customer Web and Mobile rules for MZ Logistics
+alwaysApply: true
+---
+
+# MZ Logistics Customer Platform - Flutter Rules
+
+Follow the global MZ Logistics rules.
+
+This application serves MZ Logistics customers on:
+
+- Web
+- Android
+- iOS
+
+The same codebase must provide an excellent experience on both mobile and web.
+
+## Architecture
+
+Use a clean feature-based architecture.
+
+Recommended structure:
+
+lib/
+  core/
+  shared/
+  features/
+    auth/
+    home/
+    shipments/
+    quotations/
+    jobs/
+    trips/
+    tracking/
+    payments/
+    invoices/
+    profile/
+    notifications/
+
+Each feature should separate:
+
+- Presentation
+- State management
+- Domain/business logic where needed
+- Data/API layer
+
+Do not put API logic directly inside widgets.
+
+## UI
+
+Customer experience should feel simple and premium.
+
+The customer should easily understand:
+
+- How to create shipment request.
+- Shipment status.
+- Received quotations.
+- Quotation comparison.
+- Payment status.
+- Job progress.
+- Trip progress.
+- Tracking.
+- Invoices.
+
+Do not expose unnecessary technical complexity.
+
+## Web vs Mobile
+
+Do not use the same layout blindly.
+
+Desktop/web:
+- Side navigation when appropriate.
+- Wider forms.
+- Data tables.
+- Multi-column layouts.
+- Quotation comparison layouts.
+- Filters and search.
+
+Mobile:
+- Bottom navigation or compact navigation.
+- Cards where appropriate.
+- Step-by-step forms.
+- Mobile-friendly quotation comparison.
+- Large touch targets.
+
+## Responsive
+
+Use responsive/adaptive layouts.
+
+Avoid fixed widths and heights unless necessary.
+
+Never allow:
+- Overflow.
+- Cut text.
+- Broken RTL.
+- Desktop-only interactions.
+
+## State Management
+
+Use one consistent state-management approach across the project.
+
+Do not mix multiple state-management libraries without strong reason.
+
+Business state must not live directly in UI widgets.
+
+## Navigation
+
+Centralize routes.
+
+Protect authenticated routes.
+
+Support deep linking where practical for Flutter Web.
+
+## Localization
+
+All text must use localization resources.
+
+Support:
+- Arabic RTL
+- English LTR
+
+No hardcoded user-facing strings.
+
+## API
+
+Use a centralized API client.
+
+Handle:
+- Authentication tokens.
+- Timeouts.
+- Server errors.
+- Validation errors.
+- Unauthorized responses.
+- Connection errors.
+
+Use typed models.
+
+## User Experience
+
+All actions must provide proper feedback.
+
+Examples:
+- Creating shipment.
+- Submitting request.
+- Selecting quotation.
+- Payment.
+- Uploading documents.
+
+Use confirmation dialogs only for meaningful actions.
+
+Do not show unnecessary dialogs.
+
+## Performance
+
+Avoid unnecessary widget rebuilds.
+
+Use pagination/lazy loading for large lists.
+
+Optimize images.
+
+Avoid calling APIs repeatedly during rebuilds.
