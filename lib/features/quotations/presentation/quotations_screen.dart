@@ -202,7 +202,7 @@ class _QuotationCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _line(i18n.t('quotation.trucks'), '${quotation.truckCount ?? '—'}'),
-            _line(i18n.t('quotation.truckType'), quotation.truckType ?? '—'),
+            _line(i18n.t('quotation.truckType'), quotation.truckTypeLabel ?? quotation.truckType ?? '—'),
             _line(i18n.t('quotation.capacity'), formatNumber(quotation.truckCapacityTons)),
             _line(i18n.t('quotation.trips'), '${quotation.tripCount ?? '—'}'),
             _line(i18n.t('quotation.qtyPerTrip'), formatNumber(quotation.quantityPerTrip)),
