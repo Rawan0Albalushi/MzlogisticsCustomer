@@ -10,12 +10,14 @@ import '../../../core/utils/formatters.dart';
 import '../../../shared/models/pagination_meta.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/async_body.dart';
-import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../jobs/presentation/job_providers.dart';
+import '../../payments/presentation/payment_providers.dart';
+import '../data/quotation_accept_result.dart';
 import '../data/quotation_model.dart';
 import '../data/quotation_repository.dart';
+import 'accept_quotation_dialog.dart';
 import 'quotation_providers.dart';
 
 class QuotationsScreen extends ConsumerStatefulWidget {
@@ -38,65 +40,19 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
       );
       return;
     }
-    var method = 'card';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(i18n.t('quotation.accept')),
-          content: StatefulBuilder(
-            builder: (context, setLocal) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(i18n.t('quotation.acceptConfirm'), style: const TextStyle(color: AppColors.muted)),
-                  const SizedBox(height: 16),
-                  Text(i18n.t('quotation.paymentMethod')),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: method,
-                    items: [
-                      DropdownMenuItem(value: 'card', child: Text(i18n.t('quotation.card'))),
-                      DropdownMenuItem(value: 'bank_transfer', child: Text(i18n.t('quotation.bank'))),
-                      DropdownMenuItem(value: 'wallet', child: Text(i18n.t('quotation.wallet'))),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) setLocal(() => method = value);
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            AppButton(
-              label: i18n.t('common.cancel'),
-              variant: AppButtonVariant.ghost,
-              onPressed: () => Navigator.pop(context, false),
-            ),
-            AppButton(
-              label: i18n.t('common.confirm'),
-              onPressed: () => Navigator.pop(context, true),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || _accepting) return;
+    final method = await showAcceptQuotationDialog(context: context, ref: ref);
+    if (method == null || _accepting) return;
     setState(() => _accepting = true);
     try {
-      final job = await ref.read(quotationRepositoryProvider).accept(
+      final result = await ref.read(quotationRepositoryProvider).accept(
             quotation.id,
             paymentMethod: method,
           );
       ref.invalidate(quotationsByShipmentProvider(widget.shipmentId));
       ref.invalidate(jobsProvider);
+      ref.invalidate(paymentsProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(i18n.t('quotation.accepted'))),
-      );
-      context.go('/jobs/${job.id}');
+      _openAcceptance(result);
     } catch (error) {
       if (!mounted) return;
       final message = error is ApiException && error.message == 'network'
@@ -105,6 +61,26 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _accepting = false);
+    }
+  }
+
+  void _openAcceptance(QuotationAcceptResult result) {
+    final i18n = ref.i18n;
+    if (result.requiresCheckout && result.payment != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(i18n.t('payment.redirecting'))),
+      );
+      context.go(
+        '/payments/checkout/${result.payment!.id}',
+        extra: result.paymentLink,
+      );
+      return;
+    }
+    if (result.job != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(i18n.t('quotation.accepted'))),
+      );
+      context.go('/jobs/${result.job!.id}');
     }
   }
 
@@ -292,20 +268,24 @@ class QuotationDetailScreen extends ConsumerWidget {
               i18n: i18n,
               accepting: false,
               onAccept: () async {
-                final ok = await showConfirmDialog(
-                  context,
-                  i18n: i18n,
-                  title: i18n.t('quotation.accept'),
-                  message: i18n.t('quotation.acceptConfirm'),
-                );
-                if (!ok || !context.mounted) return;
+                final method = await showAcceptQuotationDialog(context: context, ref: ref);
+                if (method == null || !context.mounted) return;
                 try {
-                  final job = await ref.read(quotationRepositoryProvider).accept(
+                  final result = await ref.read(quotationRepositoryProvider).accept(
                         quotation.id,
-                        paymentMethod: 'card',
+                        paymentMethod: method,
                       );
                   if (!context.mounted) return;
-                  context.go('/jobs/${job.id}');
+                  if (result.requiresCheckout && result.payment != null) {
+                    context.go(
+                      '/payments/checkout/${result.payment!.id}',
+                      extra: result.paymentLink,
+                    );
+                    return;
+                  }
+                  if (result.job != null) {
+                    context.go('/jobs/${result.job!.id}');
+                  }
                 } catch (error) {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(

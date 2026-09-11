@@ -15,15 +15,25 @@ class AppConstants {
       return Uri.parse(_apiBaseUrlFromEnv).host;
     }
     if (devLanHost.isNotEmpty) return devLanHost;
-    // Physical Android/iOS reach the PC via USB (`adb reverse tcp:8000 tcp:8000`).
-    // Emulator: flutter run --dart-define=DEV_LAN_HOST=10.0.2.2
-    return '127.0.0.1';
+    // Physical device on the same Wi-Fi. Override with:
+    // flutter run --dart-define=DEV_LAN_HOST=10.0.2.2  (Android emulator)
+    // USB debugging: adb reverse tcp:8000 tcp:8000 and DEV_LAN_HOST=127.0.0.1
+    return '192.168.1.125';
   }
 
   static String get apiBaseUrl {
     if (_apiBaseUrlFromEnv.isNotEmpty) return _apiBaseUrlFromEnv;
     return 'http://$apiHost:$apiPort/api/v1';
   }
+
+  static String get apiOrigin {
+    if (_apiBaseUrlFromEnv.isNotEmpty) {
+      return Uri.parse(_apiBaseUrlFromEnv).origin;
+    }
+    return 'http://$apiHost:$apiPort';
+  }
+
+  static const String appScheme = 'mzlogistics';
 
   static String get storageBaseUrl {
     if (_storageBaseUrlFromEnv.isNotEmpty) return _storageBaseUrlFromEnv;

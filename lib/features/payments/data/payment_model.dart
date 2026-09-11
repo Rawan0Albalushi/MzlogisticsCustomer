@@ -12,6 +12,7 @@ class Payment {
     this.status,
     this.gateway,
     this.gatewayReference,
+    this.paymentLink,
     this.paidAt,
     this.createdAt,
   });
@@ -26,6 +27,7 @@ class Payment {
   final String? status;
   final String? gateway;
   final String? gatewayReference;
+  final String? paymentLink;
   final DateTime? paidAt;
   final DateTime? createdAt;
 
@@ -41,6 +43,7 @@ class Payment {
       status: asString(json['status']),
       gateway: asString(json['gateway']),
       gatewayReference: asString(json['gateway_reference']),
+      paymentLink: asString(json['payment_link']),
       paidAt: asDateTime(json['paid_at']),
       createdAt: asDateTime(json['created_at']),
     );

@@ -38,6 +38,7 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
           options.headers['Accept-Language'] = _localeReader();
+          options.headers['X-Payment-Callback-Base'] = AppConstants.apiOrigin;
           handler.next(options);
         },
         onError: (error, handler) async {

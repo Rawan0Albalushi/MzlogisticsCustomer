@@ -5,6 +5,8 @@ import '../../../core/providers.dart';
 import '../../../core/utils/json_utils.dart';
 import '../../../shared/models/pagination_meta.dart';
 import '../../jobs/data/job_model.dart';
+import '../../payments/data/payment_model.dart';
+import 'quotation_accept_result.dart';
 import 'quotation_model.dart';
 
 class QuotationRepository {
@@ -31,12 +33,23 @@ class QuotationRepository {
     return Quotation.fromJson(envelope.map);
   }
 
-  Future<TransportJob> accept(int id, {required String paymentMethod}) async {
+  Future<QuotationAcceptResult> accept(int id, {required String paymentMethod}) async {
     final envelope = await _api.post(
       '/quotations/$id/accept',
       data: {'payment_method': paymentMethod},
     );
-    return TransportJob.fromJson(envelope.map);
+    final map = envelope.map;
+    if (asBool(map['requires_checkout'])) {
+      return QuotationAcceptResult(
+        requiresCheckout: true,
+        paymentLink: asString(map['payment_link']),
+        payment: map['payment'] is Map ? Payment.fromJson(asMap(map['payment'])) : null,
+      );
+    }
+    return QuotationAcceptResult(
+      requiresCheckout: false,
+      job: TransportJob.fromJson(map),
+    );
   }
 }
 

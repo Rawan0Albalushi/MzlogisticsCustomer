@@ -14,6 +14,8 @@ import '../../features/jobs/presentation/jobs_list_screen.dart';
 import '../../features/notifications/presentation/notification_providers.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/payments/presentation/billing_screen.dart';
+import '../../features/payments/presentation/payment_checkout_screen.dart';
+import '../../features/payments/presentation/payment_result_screens.dart';
 import '../../features/payments/presentation/payments_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/quotations/presentation/quotations_screen.dart';
@@ -47,6 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final location = state.matchedLocation;
       const authRoutes = {'/login', '/register', '/forgot-password'};
       if (auth.status == AuthStatus.unknown) {
+        if (location.startsWith('/payment')) return null;
         return location == '/splash' ? null : '/splash';
       }
       if (!auth.isAuthenticated) {
@@ -141,6 +144,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/payments/checkout/:id',
+        builder: (context, state) => PaymentCheckoutScreen(
+          paymentId: int.parse(state.pathParameters['id']!),
+          paymentLink: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      GoRoute(
+        path: '/payment/success',
+        builder: (context, state) => PaymentSuccessScreen(
+          paymentId: int.tryParse(state.uri.queryParameters['payment_id'] ?? ''),
+          jobId: int.tryParse(state.uri.queryParameters['job_id'] ?? ''),
+          success: state.uri.queryParameters['success'] != '0',
+        ),
+      ),
+      GoRoute(
+        path: '/payment/cancel',
+        builder: (context, state) => PaymentCancelScreen(
+          paymentId: int.tryParse(state.uri.queryParameters['payment_id'] ?? ''),
+        ),
       ),
     ],
   );
