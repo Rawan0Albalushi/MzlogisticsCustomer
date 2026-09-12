@@ -12,6 +12,7 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
 import '../data/shipment_repository.dart';
 import 'shipment_providers.dart';
@@ -58,6 +59,14 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
 
     return PageScaffold(
       title: i18n.t('shipment.detail'),
+      showBack: true,
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/home');
+        }
+      },
       body: AsyncBody<ShipmentRequest>(
         value: value,
         i18n: i18n,
@@ -92,15 +101,20 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         label: i18n.t('shipment.weight'),
                         value: '${formatNumber(shipment.weightTons)} ${i18n.t('common.tons')}',
                       ),
+                      if (!QuantityUnits.isTons(shipment.quantityUnit))
+                        InfoRow(
+                          label: QuantityUnits.countFieldLabel(i18n, shipment.quantityUnit ?? ''),
+                          value: QuantityUnits.formatQuantity(
+                            i18n,
+                            shipment.quantity,
+                            shipment.quantityUnit,
+                          ),
+                        ),
                       InfoRow(
                         label: i18n.t('shipment.volume'),
                         value: shipment.volumeCbm == null
                             ? i18n.t('common.notAvailable')
                             : '${formatNumber(shipment.volumeCbm)} ${i18n.t('common.cbm')}',
-                      ),
-                      InfoRow(
-                        label: i18n.t('shipment.quantity'),
-                        value: '${formatNumber(shipment.quantity)} ${shipment.quantityUnit ?? ''}',
                       ),
                       if (shipment.cargoDescription != null)
                         SizedBox(

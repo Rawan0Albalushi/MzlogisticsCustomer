@@ -11,6 +11,7 @@ import '../../../shared/widgets/app_list_card.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
 import 'shipment_providers.dart';
 
@@ -58,7 +59,7 @@ class ShipmentsListScreen extends ConsumerWidget {
                           DataColumn(label: Text(i18n.t('common.reference'))),
                           DataColumn(label: Text(i18n.t('shipment.cargoType'))),
                           DataColumn(label: Text(i18n.t('shipment.route'))),
-                          DataColumn(label: Text(i18n.t('shipment.weight'))),
+                          DataColumn(label: Text(i18n.t('shipment.quantity'))),
                           DataColumn(label: Text(i18n.t('common.status'))),
                           DataColumn(label: Text(i18n.t('common.date'))),
                         ],
@@ -70,7 +71,12 @@ class ShipmentsListScreen extends ConsumerWidget {
                                 DataCell(Text(item.reference ?? '—')),
                                 DataCell(Text(item.cargoType ?? '—')),
                                 DataCell(Text(item.routeLabel)),
-                                DataCell(Text('${formatNumber(item.weightTons)} ${i18n.t('common.tons')}')),
+                                DataCell(Text(QuantityUnits.cargoSummary(
+                                  i18n,
+                                  weightTons: item.weightTons,
+                                  quantity: item.quantity,
+                                  unit: item.quantityUnit,
+                                ))),
                                 DataCell(StatusBadge(status: item.status ?? '', label: i18n.status(item.status))),
                                 DataCell(Text(formatDate(item.requiredDate, locale: i18n.locale.languageCode))),
                               ],
@@ -93,7 +99,12 @@ class ShipmentsListScreen extends ConsumerWidget {
                     title: item.reference ?? item.cargoType ?? '—',
                     subtitle: item.routeLabel,
                     meta:
-                        '${formatNumber(item.weightTons)} ${i18n.t('common.tons')} · ${formatDate(item.requiredDate, locale: i18n.locale.languageCode)}',
+                        '${QuantityUnits.cargoSummary(
+                          i18n,
+                          weightTons: item.weightTons,
+                          quantity: item.quantity,
+                          unit: item.quantityUnit,
+                        )} · ${formatDate(item.requiredDate, locale: i18n.locale.languageCode)}',
                     trailing: StatusBadge(status: item.status ?? '', label: i18n.status(item.status)),
                   );
                 },

@@ -11,12 +11,14 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     this.subtitle,
     this.actions,
     this.showBack,
+    this.onBack,
   });
 
   final String title;
   final String? subtitle;
   final List<Widget>? actions;
   final bool? showBack;
+  final VoidCallback? onBack;
 
   static const double _toolbar = 64;
   static const double _toolbarWithSubtitle = 78;
@@ -64,7 +66,14 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                           IconButton(
                             icon: const Icon(Icons.arrow_back),
                             color: AppColors.white,
-                            onPressed: () => context.pop(),
+                            onPressed: onBack ??
+                                () {
+                                  if (context.canPop()) {
+                                    context.pop();
+                                  } else {
+                                    context.go('/home');
+                                  }
+                                },
                           )
                         else
                           const SizedBox(width: 20),

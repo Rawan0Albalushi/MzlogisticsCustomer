@@ -9,6 +9,7 @@ import '../../../core/utils/breakpoints.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/page_scaffold.dart';
+import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
 import '../data/shipment_repository.dart';
 import 'shipment_providers.dart';
@@ -32,7 +33,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   final _deliveryAddress = TextEditingController();
   final _deliveryCity = TextEditingController();
   final _notes = TextEditingController();
-  String _quantityUnit = 'tons';
+  String _quantityUnit = QuantityUnits.tons;
   DateTime? _requiredDate;
   bool _publish = true;
   bool _submitting = false;
@@ -64,7 +65,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
         _error = i18n.t('shipment.weightRequired');
         return false;
       }
-      if ((double.tryParse(_quantity.text) ?? 0) <= 0) {
+      if (!QuantityUnits.isTons(_quantityUnit) && (double.tryParse(_quantity.text) ?? 0) <= 0) {
         _error = i18n.t('shipment.quantityRequired');
         return false;
       }
@@ -117,7 +118,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
               cargoDescription: _cargoDescription.text.trim(),
               weightTons: double.parse(_weight.text),
               volumeCbm: double.tryParse(_volume.text),
-              quantity: double.parse(_quantity.text),
+              quantity: QuantityUnits.isTons(_quantityUnit)
+                  ? double.parse(_weight.text)
+                  : double.parse(_quantity.text),
               quantityUnit: _quantityUnit,
               pickupAddress: _pickupAddress.text.trim(),
               pickupCity: _pickupCity.text.trim(),
@@ -268,7 +271,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   }
 
   Widget _cargoFields(I18nBundle i18n) {
+    final byWeight = QuantityUnits.isTons(_quantityUnit);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppTextField(label: i18n.t('shipment.cargoType'), controller: _cargoType),
         const SizedBox(height: 12),
@@ -277,55 +282,73 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           controller: _cargoDescription,
           maxLines: 3,
         ),
-        const SizedBox(height: 12),
-        Row(
+        const SizedBox(height: 16),
+        Text(
+          i18n.t('shipment.measureBy'),
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Expanded(
-              child: AppTextField(
-                label: i18n.t('shipment.weight'),
-                controller: _weight,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AppTextField(
-                label: i18n.t('shipment.volume'),
-                controller: _volume,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-            ),
+            _measureChip(i18n.t('shipment.measureTons'), QuantityUnits.tons),
+            _measureChip(i18n.t('shipment.measurePallets'), QuantityUnits.pallets),
+            _measureChip(i18n.t('shipment.measureUnits'), QuantityUnits.units),
           ],
         ),
+        const SizedBox(height: 8),
+        Text(
+          QuantityUnits.measureHint(i18n, _quantityUnit),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted, height: 1.4),
+        ),
+        const SizedBox(height: 16),
+        if (!byWeight) ...[
+          AppTextField(
+            label: QuantityUnits.countFieldLabel(i18n, _quantityUnit),
+            controller: _quantity,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 12),
+        ],
+        AppTextField(
+          label: i18n.t('shipment.weight'),
+          controller: _weight,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextField(
-                label: i18n.t('shipment.quantity'),
-                controller: _quantity,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _quantityUnit,
-                decoration: InputDecoration(labelText: i18n.t('shipment.quantityUnit')),
-                items: [
-                  DropdownMenuItem(value: 'tons', child: Text(i18n.t('shipment.unitTons'))),
-                  DropdownMenuItem(value: 'loads', child: Text(i18n.t('shipment.unitLoads'))),
-                  DropdownMenuItem(value: 'pallets', child: Text(i18n.t('shipment.unitPallets'))),
-                  DropdownMenuItem(value: 'units', child: Text(i18n.t('shipment.unitUnits'))),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _quantityUnit = value);
-                },
-              ),
-            ),
-          ],
+        AppTextField(
+          label: i18n.t('shipment.volume'),
+          hint: i18n.t('shipment.volumeHint'),
+          controller: _volume,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
       ],
+    );
+  }
+
+  Widget _measureChip(String label, String value) {
+    final selected = _quantityUnit == value;
+    return Material(
+      color: selected ? AppColors.navy : AppColors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: selected ? AppColors.navy : AppColors.border),
+      ),
+      child: InkWell(
+        onTap: () => setState(() => _quantityUnit = value),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? AppColors.white : AppColors.ink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -12,6 +12,8 @@ class PageScaffold extends StatelessWidget {
     this.subtitle,
     this.actions,
     this.floatingActionButton,
+    this.showBack,
+    this.onBack,
   });
 
   final String title;
@@ -19,6 +21,8 @@ class PageScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget>? actions;
   final Widget? floatingActionButton;
+  final bool? showBack;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +32,8 @@ class PageScaffold extends StatelessWidget {
         title: title,
         subtitle: subtitle,
         actions: actions,
+        showBack: showBack,
+        onBack: onBack,
       ),
       floatingActionButton: floatingActionButton,
       body: body,
