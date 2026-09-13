@@ -31,6 +31,11 @@ String formatCoordinate(num? value) {
   return value.toStringAsFixed(5);
 }
 
+String formatCoordinates(num? lat, num? lng) {
+  if (lat == null || lng == null) return '—';
+  return '${formatCoordinate(lat)}, ${formatCoordinate(lng)}';
+}
+
 String mediaUrl(String? path, String storageBase) {
   if (path == null || path.isEmpty) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;

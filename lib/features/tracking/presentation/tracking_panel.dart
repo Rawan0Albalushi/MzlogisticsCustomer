@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/info_row.dart';
+import '../../../shared/widgets/location_preview.dart';
 import '../../trips/data/trip_model.dart';
 
 class TrackingPanel extends StatelessWidget {
@@ -40,16 +41,29 @@ class TrackingPanel extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 12),
-          InfoRow(
-            label: i18n.t('tracking.pickupPoint'),
-            value: '${formatCoordinate(trip.pickupLat)}, ${formatCoordinate(trip.pickupLng)}',
-            wide: true,
+          LocationPreview(
+            i18n: i18n,
+            title: i18n.t('tracking.pickupPoint'),
+            address: trip.pickupAddress,
+            city: trip.pickupCity,
+            lat: trip.pickupLat,
+            lng: trip.pickupLng,
           ),
-          InfoRow(
-            label: i18n.t('tracking.deliveryPoint'),
-            value: '${formatCoordinate(trip.deliveryLat)}, ${formatCoordinate(trip.deliveryLng)}',
-            wide: true,
+          LocationPreview(
+            i18n: i18n,
+            title: i18n.t('tracking.deliveryPoint'),
+            address: trip.deliveryAddress,
+            city: trip.deliveryCity,
+            lat: trip.deliveryLat,
+            lng: trip.deliveryLng,
           ),
+          if (trip.hasTracking)
+            LocationPreview(
+              i18n: i18n,
+              title: i18n.t('trip.currentPosition'),
+              lat: trip.currentLat,
+              lng: trip.currentLng,
+            ),
         ],
       ),
     );

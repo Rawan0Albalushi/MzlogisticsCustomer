@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/info_row.dart';
+import '../../../shared/widgets/location_preview.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../data/quantity_units.dart';
@@ -134,16 +135,24 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      InfoRow(
-                        label: i18n.t('common.pickup'),
-                        value: '${shipment.pickupAddress ?? ''}, ${shipment.pickupCity ?? ''}',
-                        wide: true,
+                      LocationPreview(
+                        i18n: i18n,
+                        title: i18n.t('common.pickup'),
+                        address: shipment.pickupAddress,
+                        city: shipment.pickupCity,
+                        lat: shipment.pickupLat,
+                        lng: shipment.pickupLng,
                       ),
-                      InfoRow(
-                        label: i18n.t('common.delivery'),
-                        value: '${shipment.deliveryAddress ?? ''}, ${shipment.deliveryCity ?? ''}',
-                        wide: true,
+                      const SizedBox(height: 12),
+                      LocationPreview(
+                        i18n: i18n,
+                        title: i18n.t('common.delivery'),
+                        address: shipment.deliveryAddress,
+                        city: shipment.deliveryCity,
+                        lat: shipment.deliveryLat,
+                        lng: shipment.deliveryLng,
                       ),
+                      const SizedBox(height: 12),
                       InfoRow(
                         label: i18n.t('shipment.requiredDate'),
                         value: formatDate(shipment.requiredDate, locale: locale),

@@ -8,6 +8,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/info_row.dart';
+import '../../../shared/widgets/location_preview.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../tracking/presentation/tracking_panel.dart';
@@ -62,13 +63,21 @@ class TripDetailScreen extends ConsumerWidget {
                       InfoRow(label: i18n.t('trip.truck'), value: trip.truck?.plateNumber ?? i18n.t('common.notAvailable')),
                       InfoRow(label: i18n.t('trip.planned'), value: formatNumber(trip.plannedQuantity)),
                       InfoRow(label: i18n.t('trip.delivered'), value: formatNumber(trip.deliveredQuantity)),
-                      InfoRow(
-                        label: i18n.t('common.pickup'),
-                        value: '${trip.pickupAddress ?? ''}, ${trip.pickupCity ?? ''}',
+                      LocationPreview(
+                        i18n: i18n,
+                        title: i18n.t('common.pickup'),
+                        address: trip.pickupAddress,
+                        city: trip.pickupCity,
+                        lat: trip.pickupLat,
+                        lng: trip.pickupLng,
                       ),
-                      InfoRow(
-                        label: i18n.t('common.delivery'),
-                        value: '${trip.deliveryAddress ?? ''}, ${trip.deliveryCity ?? ''}',
+                      LocationPreview(
+                        i18n: i18n,
+                        title: i18n.t('common.delivery'),
+                        address: trip.deliveryAddress,
+                        city: trip.deliveryCity,
+                        lat: trip.deliveryLat,
+                        lng: trip.deliveryLng,
                       ),
                     ],
                   ),

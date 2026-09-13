@@ -18,7 +18,7 @@ class AppConstants {
     // Physical device on the same Wi-Fi. Override with:
     // flutter run --dart-define=DEV_LAN_HOST=10.0.2.2  (Android emulator)
     // USB debugging: adb reverse tcp:8000 tcp:8000 and DEV_LAN_HOST=127.0.0.1
-    return '192.168.1.125';
+    return '192.168.100.197';
   }
 
   static String get apiBaseUrl {
@@ -49,6 +49,11 @@ class AppConstants {
 
   static const String demoEmail = 'customer@gulfmaterials.om';
   static const String demoPassword = 'Password123!';
+
+  static const double mapDefaultLat = 23.5880;
+  static const double mapDefaultLng = 58.3829;
+  static const double mapCountryZoom = 7;
+  static const double mapPlaceZoom = 15;
 
   static const double desktopBreakpoint = 1024;
   static const double tabletBreakpoint = 768;

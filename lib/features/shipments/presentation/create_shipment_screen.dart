@@ -6,8 +6,10 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
+import '../../../shared/models/geo_location.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/location_picker_field.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
@@ -28,11 +30,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   final _weight = TextEditingController();
   final _volume = TextEditingController();
   final _quantity = TextEditingController();
-  final _pickupAddress = TextEditingController();
-  final _pickupCity = TextEditingController();
-  final _deliveryAddress = TextEditingController();
-  final _deliveryCity = TextEditingController();
   final _notes = TextEditingController();
+  GeoLocation? _pickup;
+  GeoLocation? _delivery;
   String _quantityUnit = QuantityUnits.tons;
   DateTime? _requiredDate;
   bool _publish = true;
@@ -47,10 +47,6 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
     _weight.dispose();
     _volume.dispose();
     _quantity.dispose();
-    _pickupAddress.dispose();
-    _pickupCity.dispose();
-    _deliveryAddress.dispose();
-    _deliveryCity.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -71,12 +67,20 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
       }
     }
     if (_step == 1) {
-      if (_pickupAddress.text.trim().isEmpty || _pickupCity.text.trim().isEmpty) {
+      if (_pickup == null || _pickup!.address.isEmpty || _pickup!.city.isEmpty) {
         _error = i18n.t('shipment.pickupRequired');
         return false;
       }
-      if (_deliveryAddress.text.trim().isEmpty || _deliveryCity.text.trim().isEmpty) {
+      if (!_pickup!.hasCoordinates) {
+        _error = i18n.t('location.pickupMapRequired');
+        return false;
+      }
+      if (_delivery == null || _delivery!.address.isEmpty || _delivery!.city.isEmpty) {
         _error = i18n.t('shipment.deliveryRequired');
+        return false;
+      }
+      if (!_delivery!.hasCoordinates) {
+        _error = i18n.t('location.deliveryMapRequired');
         return false;
       }
     }
@@ -122,10 +126,14 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                   ? double.parse(_weight.text)
                   : double.parse(_quantity.text),
               quantityUnit: _quantityUnit,
-              pickupAddress: _pickupAddress.text.trim(),
-              pickupCity: _pickupCity.text.trim(),
-              deliveryAddress: _deliveryAddress.text.trim(),
-              deliveryCity: _deliveryCity.text.trim(),
+              pickupAddress: _pickup!.address.trim(),
+              pickupCity: _pickup!.city.trim(),
+              pickupLat: _pickup!.lat,
+              pickupLng: _pickup!.lng,
+              deliveryAddress: _delivery!.address.trim(),
+              deliveryCity: _delivery!.city.trim(),
+              deliveryLat: _delivery!.lat,
+              deliveryLng: _delivery!.lng,
               requiredDate: _requiredDate!,
               notes: _notes.text.trim(),
               publish: publish,
@@ -355,13 +363,19 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   Widget _routeFields(I18nBundle i18n) {
     return Column(
       children: [
-        AppTextField(label: i18n.t('shipment.pickupAddress'), controller: _pickupAddress),
+        LocationPickerField(
+          label: i18n.t('shipment.pickupAddress'),
+          value: _pickup,
+          i18n: i18n,
+          onChanged: (value) => setState(() => _pickup = value),
+        ),
         const SizedBox(height: 12),
-        AppTextField(label: i18n.t('shipment.pickupCity'), controller: _pickupCity),
-        const SizedBox(height: 12),
-        AppTextField(label: i18n.t('shipment.deliveryAddress'), controller: _deliveryAddress),
-        const SizedBox(height: 12),
-        AppTextField(label: i18n.t('shipment.deliveryCity'), controller: _deliveryCity),
+        LocationPickerField(
+          label: i18n.t('shipment.deliveryAddress'),
+          value: _delivery,
+          i18n: i18n,
+          onChanged: (value) => setState(() => _delivery = value),
+        ),
       ],
     );
   }

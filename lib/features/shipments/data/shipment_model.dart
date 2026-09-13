@@ -110,8 +110,12 @@ class CreateShipmentPayload {
     this.quantityUnit,
     required this.pickupAddress,
     required this.pickupCity,
+    this.pickupLat,
+    this.pickupLng,
     required this.deliveryAddress,
     required this.deliveryCity,
+    this.deliveryLat,
+    this.deliveryLng,
     required this.requiredDate,
     this.notes,
     this.publish = false,
@@ -125,8 +129,12 @@ class CreateShipmentPayload {
   final String? quantityUnit;
   final String pickupAddress;
   final String pickupCity;
+  final double? pickupLat;
+  final double? pickupLng;
   final String deliveryAddress;
   final String deliveryCity;
+  final double? deliveryLat;
+  final double? deliveryLng;
   final DateTime requiredDate;
   final String? notes;
   final bool publish;
@@ -142,8 +150,12 @@ class CreateShipmentPayload {
       if (quantityUnit != null && quantityUnit!.isNotEmpty) 'quantity_unit': quantityUnit,
       'pickup_address': pickupAddress,
       'pickup_city': pickupCity,
+      if (pickupLat != null) 'pickup_lat': pickupLat,
+      if (pickupLng != null) 'pickup_lng': pickupLng,
       'delivery_address': deliveryAddress,
       'delivery_city': deliveryCity,
+      if (deliveryLat != null) 'delivery_lat': deliveryLat,
+      if (deliveryLng != null) 'delivery_lng': deliveryLng,
       'required_date': requiredDate.toIso8601String().split('T').first,
       if (notes != null && notes!.isNotEmpty) 'notes': notes,
       'publish': publish,
