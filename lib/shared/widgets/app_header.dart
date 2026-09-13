@@ -46,9 +46,9 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
               colors: [
-                Color(0xFF07141C),
+                Color(0xFF03181C),
                 AppColors.navyDeep,
-                Color(0xFF173E4F),
+                Color(0xFF0A4F58),
               ],
             ),
           ),
@@ -124,21 +124,21 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                       ],
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(20, 0, 20, 7),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 7),
                     child: SizedBox(
                       height: 3,
                       width: double.infinity,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                          borderRadius: const BorderRadius.all(Radius.circular(20)),
                           gradient: LinearGradient(
                             begin: AlignmentDirectional.centerStart,
                             end: AlignmentDirectional.centerEnd,
                             colors: [
-                              AppColors.amber,
-                              Color(0x66C9892C),
-                              Color(0x00C9892C),
+                              AppColors.accentFrom,
+                              AppColors.accentTo.withValues(alpha: 0.4),
+                              AppColors.accentTo.withValues(alpha: 0),
                             ],
                           ),
                         ),

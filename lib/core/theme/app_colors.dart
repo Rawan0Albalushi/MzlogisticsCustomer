@@ -3,22 +3,31 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color ink = Color(0xFF10212C);
-  static const Color navy = Color(0xFF0E2A38);
-  static const Color navyDeep = Color(0xFF0A1F2A);
-  static const Color amber = Color(0xFFC9892C);
-  static const Color surface = Color(0xFFF5F6F8);
-  static const Color mist = Color(0xFFE7EDF1);
-  static const Color border = Color(0xFFD8E0E6);
-  static const Color muted = Color(0xFF5B6B76);
+  static const Color ink = Color(0xFF0A2A2E);
+  static const Color navy = Color(0xFF06343A);
+  static const Color navyDeep = Color(0xFF042428);
+  static const Color accentFrom = Color(0xFF2EF0D0);
+  static const Color accentTo = Color(0xFF0891B2);
+  static const Color amber = accentTo;
+  static const Color onAccent = Color(0xFF042428);
+  static const Color surface = Color(0xFFF2F8F7);
+  static const Color mist = Color(0xFFDCEEEB);
+  static const Color border = Color(0xFFC5DCDA);
+  static const Color muted = Color(0xFF4E6B6A);
   static const Color success = Color(0xFF2F6F4E);
   static const Color danger = Color(0xFFA33B32);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color amberSoft = Color(0x1AC9892C);
+  static const Color amberSoft = Color(0x1A0891B2);
   static const Color successSoft = Color(0x1A2F6F4E);
   static const Color dangerSoft = Color(0x1AA33B32);
-  static const Color navySoft = Color(0x1412202B);
-  static const Color navyMuted = Color(0xFF8AA0AD);
+  static const Color navySoft = Color(0x1406343A);
+  static const Color navyMuted = Color(0xFF7AA8A6);
+
+  static const LinearGradient accentGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [accentFrom, accentTo],
+  );
 
   static Color statusBackground(String status) {
     switch (status) {
@@ -76,7 +85,7 @@ class AppColors {
       case 'arrived':
       case 'arrived_at_pickup':
       case 'pending_dispatch':
-        return const Color(0xFF8A5E16);
+        return const Color(0xFF0B6B84);
       case 'cancelled':
       case 'expired':
       case 'rejected':

@@ -146,7 +146,14 @@ class AuthLayout extends ConsumerWidget {
                                               ),
                                         ),
                                         const SizedBox(height: 24),
-                                        Container(width: 40, height: 2, color: AppColors.amber),
+                                        Container(
+                                          width: 40,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            gradient: AppColors.accentGradient,
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),

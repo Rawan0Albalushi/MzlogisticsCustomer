@@ -36,14 +36,21 @@ class SplashScreen extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 28),
-            Container(width: 36, height: 2, color: AppColors.amber),
+            Container(
+              width: 36,
+              height: 3,
+              decoration: BoxDecoration(
+                gradient: AppColors.accentGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 28),
             const SizedBox(
               width: 22,
               height: 22,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors.amber,
+                color: AppColors.accentTo,
               ),
             ),
           ],

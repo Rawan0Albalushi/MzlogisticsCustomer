@@ -245,7 +245,7 @@ class _BottomNavItem extends StatelessWidget {
               height: 3,
               width: selected ? 22 : 0,
               decoration: BoxDecoration(
-                color: AppColors.amber,
+                gradient: AppColors.accentGradient,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -386,7 +386,7 @@ class _SideNav extends StatelessWidget {
                                   width: 6,
                                   height: 6,
                                   decoration: const BoxDecoration(
-                                    color: AppColors.amber,
+                                    gradient: AppColors.accentGradient,
                                     shape: BoxShape.circle,
                                   ),
                                 ),

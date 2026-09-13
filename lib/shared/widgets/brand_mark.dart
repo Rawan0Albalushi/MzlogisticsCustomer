@@ -14,25 +14,34 @@ class BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final letters = Text(
+      'MZ',
+      style: TextStyle(
+        color: light ? AppColors.white : AppColors.onAccent,
+        fontWeight: FontWeight.w800,
+        fontSize: size * 0.34,
+        letterSpacing: -0.4,
+        height: 1,
+      ),
+    );
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: light ? const Color(0x1AFFFFFF) : AppColors.navy,
+        gradient: light ? null : AppColors.accentGradient,
+        color: light ? const Color(0x1AFFFFFF) : null,
         borderRadius: BorderRadius.circular(size * 0.28),
         border: light ? Border.all(color: const Color(0x33FFFFFF)) : null,
       ),
       alignment: Alignment.center,
-      child: Text(
-        'MZ',
-        style: TextStyle(
-          color: light ? AppColors.amber : AppColors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: size * 0.34,
-          letterSpacing: -0.4,
-          height: 1,
-        ),
-      ),
+      child: light
+          ? ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => AppColors.accentGradient.createShader(bounds),
+              child: letters,
+            )
+          : letters,
     );
   }
 }
