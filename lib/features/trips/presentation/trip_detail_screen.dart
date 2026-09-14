@@ -6,7 +6,9 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
+import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/location_preview.dart';
 import '../../../shared/widgets/page_scaffold.dart';
@@ -31,26 +33,30 @@ class TripDetailScreen extends ConsumerWidget {
         value: value,
         i18n: i18n,
         onRetry: () => ref.invalidate(tripDetailProvider(tripId)),
+        onRefresh: () async {
+          ref.invalidate(tripDetailProvider(tripId));
+          await ref.read(tripDetailProvider(tripId).future);
+        },
         builder: (trip) {
           final locale = i18n.locale.languageCode;
           return ContentWidth(
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        trip.reference ?? i18n.t('trip.sequence', {'n': '${trip.sequence ?? ''}'}),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                    StatusBadge(status: trip.status ?? '', label: i18n.status(trip.status)),
+                EntitySummaryCard(
+                  title: trip.reference ?? i18n.t('trip.sequence', {'n': '${trip.sequence ?? ''}'}),
+                  subtitle: i18n.t('trip.hint'),
+                  icon: Icons.local_shipping_outlined,
+                  badge: StatusBadge(status: trip.status ?? '', label: i18n.status(trip.status)),
+                  facts: [
+                    EntityFact(i18n.t('trip.driver'), trip.driver?.name ?? i18n.t('common.notAvailable')),
+                    EntityFact(i18n.t('trip.truck'), trip.truck?.plateNumber ?? i18n.t('common.notAvailable')),
                   ],
+                  footer: AppRouteLine(
+                    from: trip.pickupCity ?? trip.pickupAddress ?? '—',
+                    to: trip.deliveryCity ?? trip.deliveryAddress ?? '—',
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(i18n.t('trip.hint'), style: const TextStyle(color: AppColors.muted)),
                 const SizedBox(height: 16),
                 SectionCard(
                   title: i18n.t('common.details'),
@@ -127,11 +133,20 @@ class TripDetailScreen extends ConsumerWidget {
 
   Widget _event(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: value == '—' ? AppColors.border : AppColors.navy,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(child: Text(label, style: const TextStyle(color: AppColors.muted))),
-          Text(value),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );

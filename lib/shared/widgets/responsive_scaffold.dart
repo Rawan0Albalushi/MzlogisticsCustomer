@@ -415,7 +415,7 @@ class _SideNav extends StatelessWidget {
                       child: Text(
                         userName.isEmpty ? 'C' : userName.substring(0, 1).toUpperCase(),
                         style: const TextStyle(
-                          color: AppColors.amber,
+                          color: AppColors.onNeon,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

@@ -7,7 +7,9 @@ import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/pagination_meta.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_grouped_list.dart';
 import '../../../shared/widgets/app_list_card.dart';
+import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -23,10 +25,15 @@ class ShipmentsListScreen extends ConsumerWidget {
     final i18n = ref.i18n;
     final value = ref.watch(shipmentsProvider);
 
+    Future<void> refresh() async {
+      ref.invalidate(shipmentsProvider);
+      await ref.read(shipmentsProvider.future);
+    }
+
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Align(
             alignment: AlignmentDirectional.centerEnd,
             child: AppButton(
@@ -41,6 +48,7 @@ class ShipmentsListScreen extends ConsumerWidget {
             value: value,
             i18n: i18n,
             onRetry: () => ref.invalidate(shipmentsProvider),
+            onRefresh: refresh,
             isEmpty: (data) => data.items.isEmpty,
             emptyTitle: i18n.t('shipment.empty'),
             emptyMessage: i18n.t('home.emptyHint'),
@@ -52,52 +60,52 @@ class ShipmentsListScreen extends ConsumerWidget {
             builder: (page) {
               if (context.isDesktop) {
                 return ContentWidth(
-                  child: Card(
-                    child: SingleChildScrollView(
-                      child: DataTable(
-                        columns: [
-                          DataColumn(label: Text(i18n.t('common.reference'))),
-                          DataColumn(label: Text(i18n.t('shipment.cargoType'))),
-                          DataColumn(label: Text(i18n.t('shipment.route'))),
-                          DataColumn(label: Text(i18n.t('shipment.quantity'))),
-                          DataColumn(label: Text(i18n.t('common.status'))),
-                          DataColumn(label: Text(i18n.t('common.date'))),
-                        ],
-                        rows: [
-                          for (final item in page.items)
-                            DataRow(
-                              onSelectChanged: (_) => context.push('/shipments/${item.id}'),
-                              cells: [
-                                DataCell(Text(item.reference ?? '—')),
-                                DataCell(Text(item.cargoType ?? '—')),
-                                DataCell(Text(item.routeLabel)),
-                                DataCell(Text(QuantityUnits.cargoSummary(
-                                  i18n,
-                                  weightTons: item.weightTons,
-                                  quantity: item.quantity,
-                                  unit: item.quantityUnit,
-                                ))),
-                                DataCell(StatusBadge(status: item.status ?? '', label: i18n.status(item.status))),
-                                DataCell(Text(formatDate(item.requiredDate, locale: i18n.locale.languageCode))),
-                              ],
-                            ),
-                        ],
-                      ),
+                  child: AppTableCard(
+                    child: DataTable(
+                      columns: [
+                        DataColumn(label: Text(i18n.t('common.reference'))),
+                        DataColumn(label: Text(i18n.t('shipment.cargoType'))),
+                        DataColumn(label: Text(i18n.t('shipment.route'))),
+                        DataColumn(label: Text(i18n.t('shipment.quantity'))),
+                        DataColumn(label: Text(i18n.t('common.status'))),
+                        DataColumn(label: Text(i18n.t('common.date'))),
+                      ],
+                      rows: [
+                        for (final item in page.items)
+                          DataRow(
+                            onSelectChanged: (_) => context.push('/shipments/${item.id}'),
+                            cells: [
+                              DataCell(Text(item.reference ?? '—')),
+                              DataCell(Text(item.cargoType ?? '—')),
+                              DataCell(Text(item.routeLabel)),
+                              DataCell(Text(QuantityUnits.cargoSummary(
+                                i18n,
+                                weightTons: item.weightTons,
+                                quantity: item.quantity,
+                                unit: item.quantityUnit,
+                              ))),
+                              DataCell(StatusBadge(status: item.status ?? '', label: i18n.status(item.status))),
+                              DataCell(Text(formatDate(item.requiredDate, locale: i18n.locale.languageCode))),
+                            ],
+                          ),
+                      ],
                     ),
                   ),
                 );
               }
 
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: page.items.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final item = page.items[index];
+              return AppGroupedListView<ShipmentRequest>(
+                items: page.items,
+                itemBuilder: (context, item) {
                   return AppListCard(
+                    embedded: true,
                     onTap: () => context.push('/shipments/${item.id}'),
                     title: item.reference ?? item.cargoType ?? '—',
-                    subtitle: item.routeLabel,
+                    subtitleWidget: AppRouteLine(
+                      compact: true,
+                      from: item.pickupCity ?? item.pickupAddress ?? '—',
+                      to: item.deliveryCity ?? item.deliveryAddress ?? '—',
+                    ),
                     meta:
                         '${QuantityUnits.cargoSummary(
                           i18n,

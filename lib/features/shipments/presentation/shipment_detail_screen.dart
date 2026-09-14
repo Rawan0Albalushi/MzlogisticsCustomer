@@ -7,8 +7,10 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/location_preview.dart';
 import '../../../shared/widgets/page_scaffold.dart';
@@ -72,23 +74,35 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
         value: value,
         i18n: i18n,
         onRetry: () => ref.invalidate(shipmentDetailProvider(widget.shipmentId)),
+        onRefresh: () async {
+          ref.invalidate(shipmentDetailProvider(widget.shipmentId));
+          await ref.read(shipmentDetailProvider(widget.shipmentId).future);
+        },
         builder: (shipment) {
           final locale = i18n.locale.languageCode;
           return ContentWidth(
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        shipment.reference ?? shipment.cargoType ?? '—',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
+                EntitySummaryCard(
+                  title: shipment.reference ?? shipment.cargoType ?? '—',
+                  subtitle: shipment.cargoType,
+                  icon: Icons.inventory_2_outlined,
+                  badge: StatusBadge(status: shipment.status ?? '', label: i18n.status(shipment.status)),
+                  facts: [
+                    EntityFact(
+                      i18n.t('shipment.requiredDate'),
+                      formatDate(shipment.requiredDate, locale: locale),
                     ),
-                    StatusBadge(status: shipment.status ?? '', label: i18n.status(shipment.status)),
+                    EntityFact(
+                      i18n.t('shipment.weight'),
+                      '${formatNumber(shipment.weightTons)} ${i18n.t('common.tons')}',
+                    ),
                   ],
+                  footer: AppRouteLine(
+                    from: shipment.pickupCity ?? shipment.pickupAddress ?? '—',
+                    to: shipment.deliveryCity ?? shipment.deliveryAddress ?? '—',
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SectionCard(
@@ -164,8 +178,8 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                 ),
                 const SizedBox(height: 16),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
                     AppButton(
                       label: i18n.t('shipment.viewQuotations'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/i18n_controller.dart';
+import '../../core/theme/app_colors.dart';
 import 'empty_state.dart';
 import 'error_state.dart';
 import 'loading_state.dart';
@@ -13,6 +14,7 @@ class AsyncBody<T> extends StatelessWidget {
     required this.i18n,
     required this.builder,
     this.onRetry,
+    this.onRefresh,
     this.isEmpty,
     this.emptyTitle,
     this.emptyMessage,
@@ -24,6 +26,7 @@ class AsyncBody<T> extends StatelessWidget {
   final I18nBundle i18n;
   final Widget Function(T data) builder;
   final VoidCallback? onRetry;
+  final Future<void> Function()? onRefresh;
   final bool Function(T data)? isEmpty;
   final String? emptyTitle;
   final String? emptyMessage;
@@ -32,7 +35,7 @@ class AsyncBody<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return value.when(
+    final content = value.when(
       loading: () => LoadingState(label: i18n.t('common.loading')),
       error: (error, _) => ErrorState(
         i18n: i18n,
@@ -50,6 +53,25 @@ class AsyncBody<T> extends StatelessWidget {
         }
         return builder(data);
       },
+    );
+
+    if (onRefresh == null || value.isLoading) return content;
+
+    final scrollable = value.hasValue && !(isEmpty?.call(value.requireValue) ?? false);
+    return RefreshIndicator(
+      color: AppColors.navy,
+      onRefresh: onRefresh!,
+      child: scrollable
+          ? content
+          : ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: MediaQuery.sizeOf(context).height * 0.55,
+                  child: content,
+                ),
+              ],
+            ),
     );
   }
 }

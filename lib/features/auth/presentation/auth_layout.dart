@@ -64,43 +64,28 @@ class AuthLayout extends ConsumerWidget {
               child: Row(
                 children: [
                   const BrandMark(size: 36),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      i18n.t('app.name'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
-                          ),
+                  const Spacer(),
+                  PopupMenuButton<String>(
+                    tooltip: i18n.t('common.language'),
+                    initialValue: localeCode,
+                    offset: const Offset(0, 44),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  SegmentedButton<String>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(
+                    onSelected: (value) {
+                      ref.read(i18nControllerProvider.notifier).setLocale(value);
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
                         value: 'en',
-                        label: Text(
-                          context.isMobile
-                              ? i18n.t('common.englishShort')
-                              : i18n.t('common.english'),
-                        ),
+                        child: Text(i18n.t('common.english')),
                       ),
-                      ButtonSegment(
+                      PopupMenuItem(
                         value: 'ar',
-                        label: Text(
-                          context.isMobile
-                              ? i18n.t('common.arabicShort')
-                              : i18n.t('common.arabic'),
-                        ),
+                        child: Text(i18n.t('common.arabic')),
                       ),
                     ],
-                    selected: {localeCode},
-                    onSelectionChanged: (value) {
-                      ref.read(i18nControllerProvider.notifier).setLocale(value.first);
-                    },
+                    child: const _LanguageButton(),
                   ),
                 ],
               ),
@@ -131,18 +116,11 @@ class AuthLayout extends ConsumerWidget {
                                         const BrandMark(size: 56, light: true),
                                         const SizedBox(height: 28),
                                         Text(
-                                          i18n.t('app.name'),
-                                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.white,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
                                           i18n.t('app.tagline'),
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                color: AppColors.navyMuted,
-                                                height: 1.4,
+                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                color: AppColors.white,
+                                                fontWeight: FontWeight.w600,
+                                                height: 1.35,
                                               ),
                                         ),
                                         const SizedBox(height: 24),
@@ -184,4 +162,58 @@ class AuthLayout extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _LanguageButton extends StatelessWidget {
+  const _LanguageButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: AppColors.navySoft,
+        shape: BoxShape.circle,
+      ),
+      child: const SizedBox(
+        width: 22,
+        height: 22,
+        child: CustomPaint(painter: _GlobeIconPainter()),
+      ),
+    );
+  }
+}
+
+class _GlobeIconPainter extends CustomPainter {
+  const _GlobeIconPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = AppColors.navy
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.7
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide / 2 - 0.8;
+
+    canvas.drawCircle(center, radius, stroke);
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: radius * 0.88, height: radius * 2),
+      stroke,
+    );
+    canvas.drawLine(
+      Offset(center.dx - radius, center.dy),
+      Offset(center.dx + radius, center.dy),
+      stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

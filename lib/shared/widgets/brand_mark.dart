@@ -17,7 +17,7 @@ class BrandMark extends StatelessWidget {
     final letters = Text(
       'MZ',
       style: TextStyle(
-        color: light ? AppColors.white : AppColors.onAccent,
+        color: light ? AppColors.accentFrom : AppColors.white,
         fontWeight: FontWeight.w800,
         fontSize: size * 0.34,
         letterSpacing: -0.4,
@@ -29,19 +29,13 @@ class BrandMark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: light ? null : AppColors.accentGradient,
+        gradient: light ? null : AppColors.primaryGradient,
         color: light ? const Color(0x1AFFFFFF) : null,
         borderRadius: BorderRadius.circular(size * 0.28),
         border: light ? Border.all(color: const Color(0x33FFFFFF)) : null,
       ),
       alignment: Alignment.center,
-      child: light
-          ? ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (bounds) => AppColors.accentGradient.createShader(bounds),
-              child: letters,
-            )
-          : letters,
+      child: letters,
     );
   }
 }

@@ -46,9 +46,9 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
               begin: AlignmentDirectional.topStart,
               end: AlignmentDirectional.bottomEnd,
               colors: [
-                Color(0xFF03181C),
+                AppColors.headerFrom,
                 AppColors.navyDeep,
-                Color(0xFF0A4F58),
+                AppColors.navy,
               ],
             ),
           ),

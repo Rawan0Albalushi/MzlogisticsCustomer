@@ -19,7 +19,7 @@ class AppTheme {
         primary: AppColors.navy,
         onPrimary: AppColors.white,
         secondary: AppColors.amber,
-        onSecondary: AppColors.white,
+        onSecondary: AppColors.onNeon,
         surface: AppColors.white,
         onSurface: AppColors.ink,
         error: AppColors.danger,

@@ -64,6 +64,13 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
     }
   }
 
+  bool _isBestPrice(List<Quotation> items, Quotation quotation) {
+    final prices = items.map((item) => item.totalPrice).whereType<double>().toList();
+    if (prices.isEmpty || quotation.totalPrice == null) return false;
+    final lowest = prices.reduce((a, b) => a < b ? a : b);
+    return quotation.totalPrice == lowest;
+  }
+
   void _openAcceptance(QuotationAcceptResult result) {
     final i18n = ref.i18n;
     if (result.requiresCheckout && result.payment != null) {
@@ -106,7 +113,7 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
                 children: [
                   Text(
                     i18n.t('quotation.selectBest'),
-                    style: const TextStyle(color: AppColors.muted),
+                    style: const TextStyle(color: AppColors.muted, height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   SingleChildScrollView(
@@ -123,6 +130,7 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
                                 quotation: quotation,
                                 i18n: i18n,
                                 accepting: _accepting,
+                                bestPrice: _isBestPrice(items, quotation),
                                 onAccept: () => _accept(quotation),
                                 onOpen: () => context.push('/quotations/${quotation.id}'),
                               ),
@@ -146,6 +154,7 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
                 quotation: quotation,
                 i18n: i18n,
                 accepting: _accepting,
+                bestPrice: _isBestPrice(items, quotation),
                 onAccept: () => _accept(quotation),
                 onOpen: () => context.push('/quotations/${quotation.id}'),
               );
@@ -164,6 +173,7 @@ class _QuotationCard extends StatelessWidget {
     required this.accepting,
     required this.onAccept,
     required this.onOpen,
+    this.bestPrice = false,
   });
 
   final Quotation quotation;
@@ -171,64 +181,94 @@ class _QuotationCard extends StatelessWidget {
   final bool accepting;
   final VoidCallback onAccept;
   final VoidCallback onOpen;
+  final bool bestPrice;
 
   @override
   Widget build(BuildContext context) {
     final locale = i18n.locale.languageCode;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      clipBehavior: Clip.antiAlias,
+      color: bestPrice ? AppColors.amberSoft : AppColors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ColoredBox(
+            color: bestPrice ? AppColors.accentFrom : AppColors.navy,
+            child: const SizedBox(height: 3),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    quotation.provider?.displayName(locale) ?? quotation.reference ?? '—',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        quotation.provider?.displayName(locale) ?? quotation.reference ?? '—',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    StatusBadge(status: quotation.status ?? '', label: i18n.status(quotation.status)),
+                  ],
                 ),
-                StatusBadge(status: quotation.status ?? '', label: i18n.status(quotation.status)),
+                if (bestPrice) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      i18n.t('quotation.bestPrice'),
+                      style: const TextStyle(
+                        color: AppColors.onNeon,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  formatAmount(quotation.totalPrice, currency: quotation.currency ?? 'OMR'),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.navy,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _line(i18n.t('quotation.trucks'), '${quotation.truckCount ?? '—'}'),
+                _line(i18n.t('quotation.truckType'), quotation.truckTypeLabel ?? quotation.truckType ?? '—'),
+                _line(i18n.t('quotation.capacity'), formatNumber(quotation.truckCapacityTons)),
+                _line(i18n.t('quotation.trips'), '${quotation.tripCount ?? '—'}'),
+                _line(i18n.t('quotation.qtyPerTrip'), formatNumber(quotation.quantityPerTrip)),
+                _line(i18n.t('quotation.duration'), '${quotation.durationDays ?? '—'}'),
+                _line(i18n.t('quotation.extra'), formatAmount(quotation.additionalCosts, currency: quotation.currency ?? 'OMR')),
+                _line(i18n.t('quotation.validUntil'), formatDate(quotation.validUntil, locale: locale)),
+                if (quotation.conditions != null) ...[
+                  const SizedBox(height: 8),
+                  Text(quotation.conditions!, style: const TextStyle(color: AppColors.muted)),
+                ],
+                const SizedBox(height: 16),
+                AppButton(
+                  label: i18n.t('quotation.accept'),
+                  expanded: true,
+                  loading: accepting,
+                  onPressed: quotation.canAccept && !accepting ? onAccept : null,
+                ),
+                const SizedBox(height: 4),
+                AppButton(
+                  label: i18n.t('common.details'),
+                  variant: AppButtonVariant.ghost,
+                  expanded: true,
+                  onPressed: onOpen,
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              formatAmount(quotation.totalPrice, currency: quotation.currency ?? 'OMR'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.navy,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            _line(i18n.t('quotation.trucks'), '${quotation.truckCount ?? '—'}'),
-            _line(i18n.t('quotation.truckType'), quotation.truckTypeLabel ?? quotation.truckType ?? '—'),
-            _line(i18n.t('quotation.capacity'), formatNumber(quotation.truckCapacityTons)),
-            _line(i18n.t('quotation.trips'), '${quotation.tripCount ?? '—'}'),
-            _line(i18n.t('quotation.qtyPerTrip'), formatNumber(quotation.quantityPerTrip)),
-            _line(i18n.t('quotation.duration'), '${quotation.durationDays ?? '—'}'),
-            _line(i18n.t('quotation.extra'), formatAmount(quotation.additionalCosts, currency: quotation.currency ?? 'OMR')),
-            _line(i18n.t('quotation.validUntil'), formatDate(quotation.validUntil, locale: locale)),
-            if (quotation.conditions != null) ...[
-              const SizedBox(height: 8),
-              Text(quotation.conditions!, style: const TextStyle(color: AppColors.muted)),
-            ],
-            const SizedBox(height: 16),
-            AppButton(
-              label: i18n.t('quotation.accept'),
-              expanded: true,
-              loading: accepting,
-              onPressed: quotation.canAccept && !accepting ? onAccept : null,
-            ),
-            const SizedBox(height: 4),
-            AppButton(
-              label: i18n.t('common.details'),
-              variant: AppButtonVariant.ghost,
-              expanded: true,
-              onPressed: onOpen,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -267,6 +307,7 @@ class QuotationDetailScreen extends ConsumerWidget {
               quotation: quotation,
               i18n: i18n,
               accepting: false,
+              bestPrice: false,
               onAccept: () async {
                 final method = await showAcceptQuotationDialog(context: context, ref: ref);
                 if (method == null || !context.mounted) return;

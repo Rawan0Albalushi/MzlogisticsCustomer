@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../invoices/presentation/invoices_screen.dart';
 import 'payments_screen.dart';
 
@@ -16,13 +17,25 @@ class BillingScreen extends ConsumerWidget {
       length: 2,
       child: Column(
         children: [
-          Material(
-            color: AppColors.white,
-            child: TabBar(
-              tabs: [
-                Tab(text: i18n.t('invoice.title')),
-                Tab(text: i18n.t('payment.title')),
-              ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Material(
+              color: AppColors.mist,
+              borderRadius: BorderRadius.circular(AppTheme.radius),
+              child: TabBar(
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  border: Border.all(color: AppColors.border),
+                ),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                tabs: [
+                  Tab(text: i18n.t('invoice.title')),
+                  Tab(text: i18n.t('payment.title')),
+                ],
+              ),
             ),
           ),
           const Expanded(

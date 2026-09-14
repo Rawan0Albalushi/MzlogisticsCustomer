@@ -176,33 +176,39 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           child: ListView(
             children: [
               if (!desktop)
-                Row(
-                  children: [
-                    for (var i = 0; i < steps.length; i++) ...[
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: i <= _step ? AppColors.navy : AppColors.border,
-                        foregroundColor: i <= _step ? AppColors.white : AppColors.muted,
-                        child: Text('${i + 1}', style: const TextStyle(fontSize: 12)),
-                      ),
-                      if (i < steps.length - 1)
-                        const Expanded(child: Divider()),
-                    ],
-                  ],
-                ),
+                _NativeStepper(steps: steps, current: _step),
               if (!desktop) ...[
-                const SizedBox(height: 8),
-                Text(steps[_step], style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
+                Text(
+                  steps[_step],
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
               ],
-              if (desktop || _step == 0) _cargoFields(i18n),
+              if (desktop || _step == 0)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _cargoFields(i18n),
+                  ),
+                ),
               if (desktop || _step == 1) ...[
-                if (desktop) const SizedBox(height: 20),
-                _routeFields(i18n),
+                if (desktop) const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _routeFields(i18n),
+                  ),
+                ),
               ],
               if (desktop || _step == 2) ...[
-                if (desktop) const SizedBox(height: 20),
-                _scheduleFields(i18n),
+                if (desktop) const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _scheduleFields(i18n),
+                  ),
+                ),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -407,6 +413,53 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           value: _publish,
           onChanged: (value) => setState(() => _publish = value),
         ),
+      ],
+    );
+  }
+}
+
+class _NativeStepper extends StatelessWidget {
+  const _NativeStepper({required this.steps, required this.current});
+
+  final List<String> steps;
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var index = 0; index < steps.length; index++) ...[
+          if (index > 0) const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: index < current
+                        ? AppColors.navy
+                        : index == current
+                            ? AppColors.accentFrom
+                            : AppColors.border,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  steps[index],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: index == current ? AppColors.navy : AppColors.muted,
+                        fontWeight: index == current ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

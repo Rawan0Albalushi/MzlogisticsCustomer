@@ -6,7 +6,10 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/app_list_card.dart';
+import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
+import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -29,27 +32,37 @@ class JobDetailScreen extends ConsumerWidget {
         value: value,
         i18n: i18n,
         onRetry: () => ref.invalidate(jobDetailProvider(jobId)),
+        onRefresh: () async {
+          ref.invalidate(jobDetailProvider(jobId));
+          await ref.read(jobDetailProvider(jobId).future);
+        },
         builder: (job) {
           final locale = i18n.locale.languageCode;
           final progress = ((job.progressPercent ?? 0) / 100).clamp(0.0, 1.0);
           return ContentWidth(
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        job.reference ?? i18n.t('job.detail'),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
+                EntitySummaryCard(
+                  title: job.reference ?? i18n.t('job.detail'),
+                  subtitle: i18n.t('job.hint'),
+                  icon: Icons.assignment_outlined,
+                  badge: StatusBadge(status: job.status ?? '', label: i18n.status(job.status)),
+                  facts: [
+                    EntityFact(
+                      i18n.t('common.provider'),
+                      job.provider?.displayName(locale) ?? '—',
                     ),
-                    StatusBadge(status: job.status ?? '', label: i18n.status(job.status)),
+                    EntityFact(
+                      i18n.t('common.amount'),
+                      formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'),
+                    ),
+                    EntityFact(
+                      i18n.t('common.progress'),
+                      formatPercent(job.progressPercent),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(i18n.t('job.hint'), style: const TextStyle(color: AppColors.muted)),
                 const SizedBox(height: 16),
                 SectionCard(
                   title: i18n.t('job.progress'),
@@ -103,28 +116,31 @@ class JobDetailScreen extends ConsumerWidget {
                 if (job.trips.isEmpty)
                   Text(i18n.t('job.noTrips'), style: const TextStyle(color: AppColors.muted))
                 else
-                  ...job.trips.map((trip) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Card(
-                        child: ListTile(
-                          onTap: () => context.push('/trips/${trip.id}'),
-                          title: Text(
-                            trip.reference ??
-                                i18n.t('trip.sequence', {'n': '${trip.sequence ?? ''}'}),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        for (var index = 0; index < job.trips.length; index++) ...[
+                          if (index > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+                          AppListCard(
+                            embedded: true,
+                            onTap: () => context.push('/trips/${job.trips[index].id}'),
+                            title: job.trips[index].reference ??
+                                i18n.t('trip.sequence', {'n': '${job.trips[index].sequence ?? ''}'}),
+                            subtitleWidget: AppRouteLine(
+                              compact: true,
+                              from: job.trips[index].pickupCity ?? job.trips[index].pickupAddress ?? '—',
+                              to: job.trips[index].deliveryCity ?? job.trips[index].deliveryAddress ?? '—',
+                            ),
+                            trailing: StatusBadge(
+                              status: job.trips[index].status ?? '',
+                              label: i18n.status(job.trips[index].status),
+                            ),
                           ),
-                          subtitle: Text(
-                            '${trip.pickupCity ?? '—'} → ${trip.deliveryCity ?? '—'}',
-                            style: const TextStyle(color: AppColors.muted),
-                          ),
-                          trailing: StatusBadge(
-                            status: trip.status ?? '',
-                            label: i18n.status(trip.status),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+                        ],
+                      ],
+                    ),
+                  ),
               ],
             ),
           );

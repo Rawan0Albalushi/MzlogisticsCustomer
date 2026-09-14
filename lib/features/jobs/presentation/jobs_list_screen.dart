@@ -6,6 +6,7 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/pagination_meta.dart';
+import '../../../shared/widgets/app_grouped_list.dart';
 import '../../../shared/widgets/app_list_card.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/page_scaffold.dart';
@@ -21,10 +22,16 @@ class JobsListScreen extends ConsumerWidget {
     final i18n = ref.i18n;
     final value = ref.watch(jobsProvider);
 
+    Future<void> refresh() async {
+      ref.invalidate(jobsProvider);
+      await ref.read(jobsProvider.future);
+    }
+
     return AsyncBody<PagedResult<TransportJob>>(
       value: value,
       i18n: i18n,
       onRetry: () => ref.invalidate(jobsProvider),
+      onRefresh: refresh,
       isEmpty: (data) => data.items.isEmpty,
       emptyTitle: i18n.t('job.empty'),
       emptyMessage: i18n.t('job.hint'),
@@ -32,44 +39,40 @@ class JobsListScreen extends ConsumerWidget {
       builder: (page) {
         if (context.isDesktop) {
           return ContentWidth(
-            child: Card(
-              child: SingleChildScrollView(
-                child: DataTable(
-                  columns: [
-                    DataColumn(label: Text(i18n.t('common.reference'))),
-                    DataColumn(label: Text(i18n.t('common.provider'))),
-                    DataColumn(label: Text(i18n.t('common.progress'))),
-                    DataColumn(label: Text(i18n.t('nav.trips'))),
-                    DataColumn(label: Text(i18n.t('common.status'))),
-                    DataColumn(label: Text(i18n.t('common.amount'))),
-                  ],
-                  rows: [
-                    for (final job in page.items)
-                      DataRow(
-                        onSelectChanged: (_) => context.push('/jobs/${job.id}'),
-                        cells: [
-                          DataCell(Text(job.reference ?? '—')),
-                          DataCell(Text(job.provider?.displayName(i18n.locale.languageCode) ?? '—')),
-                          DataCell(Text(formatPercent(job.progressPercent))),
-                          DataCell(Text('${job.trips.length}')),
-                          DataCell(StatusBadge(status: job.status ?? '', label: i18n.status(job.status))),
-                          DataCell(Text(formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'))),
-                        ],
-                      ),
-                  ],
-                ),
+            child: AppTableCard(
+              child: DataTable(
+                columns: [
+                  DataColumn(label: Text(i18n.t('common.reference'))),
+                  DataColumn(label: Text(i18n.t('common.provider'))),
+                  DataColumn(label: Text(i18n.t('common.progress'))),
+                  DataColumn(label: Text(i18n.t('nav.trips'))),
+                  DataColumn(label: Text(i18n.t('common.status'))),
+                  DataColumn(label: Text(i18n.t('common.amount'))),
+                ],
+                rows: [
+                  for (final job in page.items)
+                    DataRow(
+                      onSelectChanged: (_) => context.push('/jobs/${job.id}'),
+                      cells: [
+                        DataCell(Text(job.reference ?? '—')),
+                        DataCell(Text(job.provider?.displayName(i18n.locale.languageCode) ?? '—')),
+                        DataCell(Text(formatPercent(job.progressPercent))),
+                        DataCell(Text('${job.trips.length}')),
+                        DataCell(StatusBadge(status: job.status ?? '', label: i18n.status(job.status))),
+                        DataCell(Text(formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'))),
+                      ],
+                    ),
+                ],
               ),
             ),
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: page.items.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final job = page.items[index];
+        return AppGroupedListView<TransportJob>(
+          items: page.items,
+          itemBuilder: (context, job) {
             return AppListCard(
+              embedded: true,
               onTap: () => context.push('/jobs/${job.id}'),
               title: job.reference ?? i18n.t('job.detail'),
               subtitle:

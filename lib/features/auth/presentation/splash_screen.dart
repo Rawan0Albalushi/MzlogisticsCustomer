@@ -50,7 +50,7 @@ class SplashScreen extends ConsumerWidget {
               height: 22,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors.accentTo,
+                color: AppColors.accentFrom,
               ),
             ),
           ],

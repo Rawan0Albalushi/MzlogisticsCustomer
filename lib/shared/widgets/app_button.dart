@@ -52,7 +52,7 @@ class AppButton extends StatelessWidget {
     final button = switch (variant) {
       AppButtonVariant.primary => DecoratedBox(
           decoration: BoxDecoration(
-            gradient: enabled ? AppColors.accentGradient : null,
+            gradient: enabled ? AppColors.primaryGradient : null,
             color: enabled ? null : AppColors.mist,
             borderRadius: BorderRadius.circular(AppTheme.radius),
           ),
