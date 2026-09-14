@@ -79,6 +79,10 @@
   "common.name": "Name",
   "common.city": "City",
   "common.address": "Address",
+  "location.governorate": "Governorate",
+  "location.wilayat": "Wilayat",
+  "location.addressHint": "Street, building number, or landmark",
+  "location.autoFilledFromMap": "Governorate and wilayat are filled automatically from the map",
   "common.country": "Country",
   "common.offline": "You appear to be offline.",
 
@@ -173,6 +177,7 @@
   "shipment.detail": "Shipment request",
   "shipment.cargo": "Cargo",
   "shipment.route": "Route",
+  "progress.stage": "Request stage",
   "shipment.schedule": "Schedule",
   "shipment.stepCargo": "Cargo details",
   "shipment.stepRoute": "Pickup and delivery",

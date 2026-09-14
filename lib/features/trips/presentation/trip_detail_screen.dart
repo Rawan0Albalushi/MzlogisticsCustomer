@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/i18n_controller.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_progress.dart';
 import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/entity_summary_card.dart';
@@ -46,7 +46,7 @@ class TripDetailScreen extends ConsumerWidget {
                 EntitySummaryCard(
                   title: trip.reference ?? i18n.t('trip.sequence', {'n': '${trip.sequence ?? ''}'}),
                   subtitle: i18n.t('trip.hint'),
-                  icon: Icons.local_shipping_outlined,
+                  icon: Icons.local_shipping_rounded,
                   badge: StatusBadge(status: trip.status ?? '', label: i18n.status(trip.status)),
                   facts: [
                     EntityFact(i18n.t('trip.driver'), trip.driver?.name ?? i18n.t('common.notAvailable')),
@@ -59,7 +59,23 @@ class TripDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 SectionCard(
+                  title: i18n.t('progress.stage'),
+                  icon: Icons.alt_route_rounded,
+                  child: AppStatusStepper(
+                    steps: [
+                      AppStepItem(id: 'assigned', label: i18n.status('assigned'), icon: Icons.person_pin_circle_rounded),
+                      AppStepItem(id: 'loaded', label: i18n.status('loaded'), icon: Icons.inventory_2_rounded),
+                      AppStepItem(id: 'in_transit', label: i18n.status('in_transit'), icon: Icons.near_me_rounded),
+                      AppStepItem(id: 'delivered', label: i18n.status('delivered'), icon: Icons.flag_rounded),
+                    ],
+                    currentId: _tripStep(trip.status),
+                    failed: trip.status == 'cancelled',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SectionCard(
                   title: i18n.t('common.details'),
+                  icon: Icons.info_rounded,
                   child: Wrap(
                     spacing: 24,
                     runSpacing: 12,
@@ -93,15 +109,58 @@ class TripDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 SectionCard(
                   title: i18n.t('trip.timeline'),
-                  child: Column(
-                    children: [
-                      _event(i18n.t('trip.assignedAt'), formatDateTime(trip.assignedAt, locale: locale)),
-                      _event(i18n.t('trip.pickupAt'), formatDateTime(trip.arrivedPickupAt, locale: locale)),
-                      _event(i18n.t('trip.loadedAt'), formatDateTime(trip.loadedAt, locale: locale)),
-                      _event(i18n.t('trip.transitAt'), formatDateTime(trip.inTransitAt, locale: locale)),
-                      _event(i18n.t('trip.arrivedAt'), formatDateTime(trip.arrivedAt, locale: locale)),
-                      _event(i18n.t('trip.deliveredAt'), formatDateTime(trip.deliveredAt, locale: locale)),
-                      _event(i18n.t('trip.completedAt'), formatDateTime(trip.completedAt, locale: locale)),
+                  icon: Icons.history_rounded,
+                  child: AppTimeline(
+                    events: [
+                      AppTimelineEvent(
+                        label: i18n.t('trip.assignedAt'),
+                        value: formatDateTime(trip.assignedAt, locale: locale),
+                        icon: Icons.assignment_ind_rounded,
+                        done: trip.assignedAt != null,
+                        current: trip.status == 'assigned' || trip.status == 'unassigned',
+                      ),
+                      AppTimelineEvent(
+                        label: i18n.t('trip.pickupAt'),
+                        value: formatDateTime(trip.arrivedPickupAt, locale: locale),
+                        icon: Icons.trip_origin_rounded,
+                        done: trip.arrivedPickupAt != null,
+                        current: trip.status == 'arrived_at_pickup',
+                      ),
+                      AppTimelineEvent(
+                        label: i18n.t('trip.loadedAt'),
+                        value: formatDateTime(trip.loadedAt, locale: locale),
+                        icon: Icons.inventory_2_rounded,
+                        done: trip.loadedAt != null,
+                        current: trip.status == 'loaded',
+                      ),
+                      AppTimelineEvent(
+                        label: i18n.t('trip.transitAt'),
+                        value: formatDateTime(trip.inTransitAt, locale: locale),
+                        icon: Icons.near_me_rounded,
+                        done: trip.inTransitAt != null,
+                        current: trip.status == 'in_transit',
+                      ),
+                      AppTimelineEvent(
+                        label: i18n.t('trip.arrivedAt'),
+                        value: formatDateTime(trip.arrivedAt, locale: locale),
+                        icon: Icons.place_rounded,
+                        done: trip.arrivedAt != null,
+                        current: trip.status == 'arrived',
+                      ),
+                      AppTimelineEvent(
+                        label: i18n.t('trip.deliveredAt'),
+                        value: formatDateTime(trip.deliveredAt, locale: locale),
+                        icon: Icons.flag_rounded,
+                        done: trip.deliveredAt != null,
+                        current: trip.status == 'delivered',
+                      ),
+                      AppTimelineEvent(
+                        label: i18n.t('trip.completedAt'),
+                        value: formatDateTime(trip.completedAt, locale: locale),
+                        icon: Icons.verified_rounded,
+                        done: trip.completedAt != null,
+                        current: trip.status == 'completed',
+                      ),
                     ],
                   ),
                 ),
@@ -112,12 +171,12 @@ class TripDetailScreen extends ConsumerWidget {
                   children: [
                     AppButton(
                       label: i18n.t('trip.viewTracking'),
-                      icon: Icons.my_location_outlined,
+                      icon: Icons.near_me_rounded,
                       onPressed: () => context.push('/trips/${trip.id}/tracking'),
                     ),
                     AppButton(
                       label: i18n.t('trip.viewPod'),
-                      icon: Icons.verified_outlined,
+                      icon: Icons.verified_rounded,
                       variant: AppButtonVariant.secondary,
                       onPressed: () => context.push('/trips/${trip.id}/pod'),
                     ),
@@ -130,27 +189,15 @@ class TripDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _event(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: value == '—' ? AppColors.border : AppColors.navy,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: const TextStyle(color: AppColors.muted))),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
+String _tripStep(String? status) {
+  return switch (status) {
+    'loaded' => 'loaded',
+    'in_transit' || 'arrived' => 'in_transit',
+    'delivered' || 'completed' => 'delivered',
+    _ => 'assigned',
+  };
 }
 
 class TripTrackingScreen extends ConsumerWidget {

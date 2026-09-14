@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_list_card.dart';
+import '../../../shared/widgets/app_progress.dart';
 import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/entity_summary_card.dart';
@@ -46,7 +46,7 @@ class JobDetailScreen extends ConsumerWidget {
                 EntitySummaryCard(
                   title: job.reference ?? i18n.t('job.detail'),
                   subtitle: i18n.t('job.hint'),
-                  icon: Icons.assignment_outlined,
+                  icon: Icons.assignment_turned_in_rounded,
                   badge: StatusBadge(status: job.status ?? '', label: i18n.status(job.status)),
                   facts: [
                     EntityFact(
@@ -66,39 +66,56 @@ class JobDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 SectionCard(
                   title: i18n.t('job.progress'),
+                  icon: Icons.bolt_rounded,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(AppTheme.radius),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 10,
-                          backgroundColor: AppColors.border,
-                          color: AppColors.navy,
-                        ),
+                      AppStatusStepper(
+                        steps: [
+                          AppStepItem(
+                            id: 'pending_dispatch',
+                            label: i18n.status('pending_dispatch'),
+                            icon: Icons.hourglass_top_rounded,
+                          ),
+                          AppStepItem(
+                            id: 'in_progress',
+                            label: i18n.status('in_progress'),
+                            icon: Icons.local_shipping_rounded,
+                          ),
+                          AppStepItem(
+                            id: 'completed',
+                            label: i18n.status('completed'),
+                            icon: Icons.verified_rounded,
+                          ),
+                        ],
+                        currentId: _jobStep(job.status),
+                        failed: job.status == 'cancelled',
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '${formatPercent(job.progressPercent)} · ${i18n.t('job.deliveredOf', {
+                      const SizedBox(height: 18),
+                      AppProgressBar(
+                        value: progress,
+                        caption: i18n.t('job.deliveredOf', {
                           'delivered': formatNumber(job.deliveredQuantity),
                           'total': formatNumber(job.totalQuantity),
-                        })}',
+                        }),
                       ),
                       const SizedBox(height: 16),
                       Wrap(
-                        spacing: 24,
-                        runSpacing: 12,
+                        spacing: 10,
+                        runSpacing: 10,
                         children: [
-                          InfoRow(
+                          AppMetricChip(
+                            icon: Icons.handshake_rounded,
                             label: i18n.t('common.provider'),
                             value: job.provider?.displayName(locale) ?? '—',
                           ),
-                          InfoRow(
+                          AppMetricChip(
+                            icon: Icons.payments_rounded,
                             label: i18n.t('common.amount'),
                             value: formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'),
                           ),
-                          InfoRow(
+                          AppMetricChip(
+                            icon: Icons.tag_rounded,
                             label: i18n.t('common.reference'),
                             value: job.shipment?.reference ?? '—',
                           ),
@@ -148,4 +165,12 @@ class JobDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _jobStep(String? status) {
+  return switch (status) {
+    'in_progress' => 'in_progress',
+    'completed' => 'completed',
+    _ => 'pending_dispatch',
+  };
 }

@@ -4,6 +4,7 @@ import '../../core/i18n/i18n_controller.dart';
 import '../../core/maps/google_maps_links.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import 'app_glyph.dart';
 
 class LocationPreview extends StatelessWidget {
   const LocationPreview({
@@ -37,8 +38,27 @@ class LocationPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.muted)),
-        const SizedBox(height: 4),
+        Row(
+          children: [
+            AppGlyph(
+              icon: navigate ? Icons.near_me_rounded : Icons.place_rounded,
+              size: 32,
+              iconSize: 16,
+              tone: navigate ? AppGlyphTone.neon : AppGlyphTone.navy,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Text(
           line.isEmpty ? i18n.t('common.notAvailable') : line,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -51,7 +71,7 @@ class LocationPreview extends StatelessWidget {
           ),
           TextButton.icon(
             onPressed: () => GoogleMapsLinks.open(lat: lat!, lng: lng!, navigate: navigate),
-            icon: Icon(navigate ? Icons.navigation_outlined : Icons.map_outlined, size: 18),
+            icon: Icon(navigate ? Icons.near_me_rounded : Icons.map_rounded, size: 18),
             label: Text(
               navigate ? i18n.t('location.navigate') : i18n.t('location.openInGoogleMaps'),
             ),

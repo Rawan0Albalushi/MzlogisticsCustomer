@@ -28,6 +28,8 @@ GeoLocation geoLocationFromPlaceJson(Map<String, dynamic> json) {
   return GeoLocation(
     address: asString(json['address']) ?? '',
     city: asString(json['city']) ?? '',
+    governorate: asString(json['governorate']) ?? '',
+    wilayat: asString(json['wilayat']) ?? '',
     lat: asDouble(json['lat']) ?? 0,
     lng: asDouble(json['lng']) ?? 0,
     placeId: asString(json['place_id']),

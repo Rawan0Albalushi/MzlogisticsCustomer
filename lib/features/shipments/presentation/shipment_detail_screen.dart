@@ -7,6 +7,7 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_progress.dart';
 import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -87,7 +88,7 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                 EntitySummaryCard(
                   title: shipment.reference ?? shipment.cargoType ?? '—',
                   subtitle: shipment.cargoType,
-                  icon: Icons.inventory_2_outlined,
+                  icon: Icons.inventory_2_rounded,
                   badge: StatusBadge(status: shipment.status ?? '', label: i18n.status(shipment.status)),
                   facts: [
                     EntityFact(
@@ -106,7 +107,34 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                 ),
                 const SizedBox(height: 16),
                 SectionCard(
+                  title: i18n.t('progress.stage'),
+                  icon: Icons.timeline_rounded,
+                  child: AppStatusStepper(
+                    steps: [
+                      AppStepItem(
+                        id: 'draft',
+                        label: i18n.status('draft'),
+                        icon: Icons.edit_note_rounded,
+                      ),
+                      AppStepItem(
+                        id: 'published',
+                        label: i18n.status('published'),
+                        icon: Icons.campaign_rounded,
+                      ),
+                      AppStepItem(
+                        id: 'awarded',
+                        label: i18n.status('awarded'),
+                        icon: Icons.workspace_premium_rounded,
+                      ),
+                    ],
+                    currentId: _shipmentStep(shipment.status),
+                    failed: shipment.status == 'cancelled' || shipment.status == 'expired',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SectionCard(
                   title: i18n.t('shipment.cargo'),
+                  icon: Icons.category_rounded,
                   child: Wrap(
                     spacing: 24,
                     runSpacing: 16,
@@ -146,6 +174,7 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                 const SizedBox(height: 12),
                 SectionCard(
                   title: i18n.t('shipment.route'),
+                  icon: Icons.route_rounded,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -183,7 +212,7 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                   children: [
                     AppButton(
                       label: i18n.t('shipment.viewQuotations'),
-                      icon: Icons.compare_arrows,
+                      icon: Icons.request_quote_rounded,
                       onPressed: () => context.push('/shipments/${shipment.id}/quotations'),
                     ),
                     if (shipment.canPublish)
@@ -239,5 +268,13 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
         },
       ),
     );
+  }
+
+  String _shipmentStep(String? status) {
+    return switch (status) {
+      'published' || 'expired' => 'published',
+      'awarded' => 'awarded',
+      _ => 'draft',
+    };
   }
 }

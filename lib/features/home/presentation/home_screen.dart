@@ -32,6 +32,7 @@ class HomeScreen extends ConsumerWidget {
       onRetry: () => ref.invalidate(dashboardProvider),
       builder: (summary) {
         return ContentWidth(
+          padding: EdgeInsets.fromLTRB(context.isDesktop ? 24 : 20, 12, context.isDesktop ? 24 : 20, 0),
           child: RefreshIndicator(
             color: AppColors.navy,
             onRefresh: () async {
@@ -68,7 +69,6 @@ class HomeScreen extends ConsumerWidget {
                 _QuickActions(i18n: i18n),
                 const SizedBox(height: 24),
                 _RecentSection(i18n: i18n, shipments: shipments),
-                const SizedBox(height: 8),
               ],
             ),
           ),

@@ -14,6 +14,7 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.maxLines = 1,
     this.enabled = true,
+    this.readOnly = false,
     this.suffix,
     this.autofillHints,
     this.inputFormatters,
@@ -30,6 +31,7 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final int maxLines;
   final bool enabled;
+  final bool readOnly;
   final Widget? suffix;
   final Iterable<String>? autofillHints;
   final List<TextInputFormatter>? inputFormatters;
@@ -47,6 +49,7 @@ class AppTextField extends StatelessWidget {
       onChanged: onChanged,
       maxLines: obscureText ? 1 : maxLines,
       enabled: enabled,
+      readOnly: readOnly,
       autofillHints: autofillHints,
       inputFormatters: inputFormatters,
       decoration: InputDecoration(
@@ -54,6 +57,8 @@ class AppTextField extends StatelessWidget {
         hintText: hint,
         suffixIcon: suffix,
         alignLabelWithHint: maxLines > 1,
+        filled: readOnly,
+        fillColor: readOnly ? const Color(0xFFF3F6FC) : null,
       ),
     );
   }

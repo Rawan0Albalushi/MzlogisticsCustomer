@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import 'app_glyph.dart';
 
 class InfoRow extends StatelessWidget {
   const InfoRow({
@@ -43,11 +44,13 @@ class SectionCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.trailing,
+    this.icon,
   });
 
   final String title;
   final Widget child;
   final Widget? trailing;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +70,10 @@ class SectionCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
+                    if (icon != null) ...[
+                      AppGlyph(icon: icon!, size: 32, iconSize: 16, tone: AppGlyphTone.neon),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       child: Text(
                         title,

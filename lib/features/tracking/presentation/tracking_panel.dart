@@ -4,6 +4,7 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/app_glyph.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/location_preview.dart';
 import '../../trips/data/trip_model.dart';
@@ -23,6 +24,7 @@ class TrackingPanel extends StatelessWidget {
     final locale = i18n.locale.languageCode;
     return SectionCard(
       title: i18n.t('tracking.title'),
+      icon: Icons.near_me_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -88,38 +90,57 @@ class _RouteSchematic extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _dot(AppColors.navy, i18n.t('common.pickup')),
+          _glyphDot(
+            tone: AppGlyphTone.navy,
+            icon: Icons.trip_origin_rounded,
+            label: i18n.t('common.pickup'),
+          ),
           Expanded(
             child: Container(
-              height: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              color: trip.hasTracking ? AppColors.amber : AppColors.border,
+              height: 4,
+              margin: const EdgeInsets.only(left: 8, right: 8, bottom: 18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(99),
+                gradient: trip.hasTracking ? AppColors.accentGradient : null,
+                color: trip.hasTracking ? null : AppColors.border,
+              ),
             ),
           ),
           if (trip.hasTracking) ...[
-            _dot(AppColors.amber, i18n.t('trip.currentPosition')),
+            _glyphDot(
+              tone: AppGlyphTone.neon,
+              icon: Icons.near_me_rounded,
+              label: i18n.t('trip.currentPosition'),
+            ),
             Expanded(
               child: Container(
-                height: 2,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                color: AppColors.border,
+                height: 4,
+                margin: const EdgeInsets.only(left: 8, right: 8, bottom: 18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(99),
+                  color: AppColors.border,
+                ),
               ),
             ),
           ],
-          _dot(AppColors.success, i18n.t('common.delivery')),
+          _glyphDot(
+            tone: AppGlyphTone.success,
+            icon: Icons.flag_rounded,
+            label: i18n.t('common.delivery'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _dot(Color color, String label) {
+  Widget _glyphDot({
+    required AppGlyphTone tone,
+    required IconData icon,
+    required String label,
+  }) {
     return Column(
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
+        AppGlyph(icon: icon, size: 36, iconSize: 18, tone: tone),
         const SizedBox(height: 6),
         Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
       ],

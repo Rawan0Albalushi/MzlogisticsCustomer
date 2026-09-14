@@ -13,6 +13,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../shared/models/geo_location.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../data/oman_geo.dart';
 import '../data/place_suggestion.dart';
 import '../data/places_repository.dart';
 
@@ -46,6 +47,8 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
   final _search = TextEditingController();
   final _address = TextEditingController();
   final _city = TextEditingController();
+  final _governorate = TextEditingController();
+  final _wilayat = TextEditingController();
   final _mapController = MapController();
   Timer? _debounce;
   List<PlaceSuggestion> _suggestions = [];
@@ -61,11 +64,31 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
     final initial = widget.initial;
     if (initial != null && initial.hasCoordinates) {
       _selected = initial;
-      _address.text = initial.address;
-      _city.text = initial.city;
+      _hydrateFields(initial);
       _center = LatLng(initial.lat, initial.lng);
     } else {
       _center = const LatLng(AppConstants.mapDefaultLat, AppConstants.mapDefaultLng);
+    }
+  }
+
+  void _hydrateFields(GeoLocation location) {
+    _address.text = location.address;
+    _city.text = location.city;
+    _governorate.text = location.governorate;
+    _wilayat.text = location.wilayat;
+    if (_governorate.text.isNotEmpty || _wilayat.text.isNotEmpty) {
+      return;
+    }
+    final parts = location.city
+        .split(RegExp(r'\s*[،,]\s*'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.length >= 2) {
+      _wilayat.text = parts.first;
+      _governorate.text = parts.sublist(1).join(', ');
+    } else if (parts.length == 1) {
+      _wilayat.text = parts.first;
     }
   }
 
@@ -75,6 +98,8 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
     _search.dispose();
     _address.dispose();
     _city.dispose();
+    _governorate.dispose();
+    _wilayat.dispose();
     _mapController.dispose();
     super.dispose();
   }
@@ -121,7 +146,10 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       _search.text = suggestion.description;
     });
     try {
-      final location = await ref.read(placesRepositoryProvider).details(suggestion.placeId);
+      final location = await ref.read(placesRepositoryProvider).details(
+            suggestion.placeId,
+            language: ref.i18n.locale.languageCode,
+          );
       if (!mounted) return;
       _applyLocation(location);
     } catch (error) {
@@ -140,23 +168,33 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
     });
     _mapController.move(point, AppConstants.mapPlaceZoom);
     try {
-      final location = await ref.read(placesRepositoryProvider).reverse(point.latitude, point.longitude);
+      final location = await ref.read(placesRepositoryProvider).reverse(
+            point.latitude,
+            point.longitude,
+            language: ref.i18n.locale.languageCode,
+          );
       if (!mounted) return;
+      if (location == null) {
+        setState(() => _searchError = ref.i18n.t('location.searchFailed'));
+      } else {
+        _searchError = null;
+      }
       _applyLocation(
-        location?.copyWith(lat: point.latitude, lng: point.longitude) ??
-            GeoLocation(
-              address: _address.text.trim(),
-              city: _city.text.trim(),
-              lat: point.latitude,
-              lng: point.longitude,
-            ),
+        (location ?? const GeoLocation(address: '', city: '', lat: 0, lng: 0)).copyWith(
+          address: _address.text.trim(),
+          lat: point.latitude,
+          lng: point.longitude,
+        ),
       );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
+      setState(() => _searchError = _mapsError(error));
       _applyLocation(
         GeoLocation(
           address: _address.text.trim(),
-          city: _city.text.trim(),
+          city: _composedCity(),
+          governorate: _governorate.text.trim(),
+          wilayat: _wilayat.text.trim(),
           lat: point.latitude,
           lng: point.longitude,
         ),
@@ -167,24 +205,37 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
   }
 
   void _applyLocation(GeoLocation location) {
-    final point = LatLng(location.lat, location.lng);
-    _address.text = location.address;
-    if (location.city.isNotEmpty) {
-      _city.text = location.city;
-    }
-    _selected = location.copyWith(
+    final resolved = applyOmanDivisions(location);
+    final point = LatLng(resolved.lat, resolved.lng);
+    _governorate.text = resolved.governorate.trim();
+    _wilayat.text = resolved.wilayat.trim();
+    _city.text = resolved.city.trim().isNotEmpty ? resolved.city.trim() : _composedCity();
+    _selected = resolved.copyWith(
       address: _address.text.trim(),
       city: _city.text.trim(),
+      governorate: _governorate.text.trim(),
+      wilayat: _wilayat.text.trim(),
     );
     _center = point;
     _mapController.move(point, AppConstants.mapPlaceZoom);
     setState(() {});
   }
 
+  String _composedCity() {
+    final parts = [
+      _wilayat.text.trim(),
+      _governorate.text.trim(),
+    ].where((part) => part.isNotEmpty);
+    if (parts.isEmpty) return _city.text.trim();
+    return parts.join(', ');
+  }
+
   void _confirm() {
     final location = GeoLocation(
       address: _address.text.trim(),
-      city: _city.text.trim(),
+      city: _composedCity(),
+      governorate: _governorate.text.trim(),
+      wilayat: _wilayat.text.trim(),
       lat: _selected?.lat ?? _center.latitude,
       lng: _selected?.lng ?? _center.longitude,
       placeId: _selected?.placeId,
@@ -207,7 +258,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
 
   bool get _canConfirm {
     return _address.text.trim().isNotEmpty &&
-        _city.text.trim().isNotEmpty &&
+        _composedCity().isNotEmpty &&
         _selected != null;
   }
 
@@ -218,8 +269,12 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Column(
-        children: [
+      resizeToAvoidBottomInset: true,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final formMaxHeight = constraints.maxHeight * 0.5;
+          return Column(
+            children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: AppTextField(
@@ -248,10 +303,9 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
               ),
             ),
           if (_suggestions.isNotEmpty)
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 220),
+            Flexible(
+              flex: 2,
               child: ListView.separated(
-                shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 itemCount: _suggestions.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
@@ -331,43 +385,75 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
               ],
             ),
           ),
-          Material(
-            elevation: 8,
-            color: AppColors.white,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-              child: Column(
-                children: [
-                  AppTextField(
-                    label: i18n.t('common.address'),
-                    controller: _address,
-                    onChanged: (_) => setState(() {}),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: formMaxHeight),
+            child: Material(
+              elevation: 8,
+              color: AppColors.white,
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: AppTextField(
+                              label: i18n.t('location.governorate'),
+                              controller: _governorate,
+                              readOnly: true,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AppTextField(
+                              label: i18n.t('location.wilayat'),
+                              controller: _wilayat,
+                              readOnly: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          i18n.t('location.autoFilledFromMap'),
+                          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      AppTextField(
+                        label: i18n.t('common.address'),
+                        hint: i18n.t('location.addressHint'),
+                        controller: _address,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          '${i18n.t('location.coordinates')}: ${formatCoordinates(_selected?.lat ?? _center.latitude, _selected?.lng ?? _center.longitude)}',
+                          style: const TextStyle(color: AppColors.muted),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      AppButton(
+                        label: i18n.t('location.confirm'),
+                        expanded: true,
+                        onPressed: _canConfirm && !_resolving ? _confirm : null,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  AppTextField(
-                    label: i18n.t('common.city'),
-                    controller: _city,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      '${i18n.t('location.coordinates')}: ${formatCoordinates(_selected?.lat ?? _center.latitude, _selected?.lng ?? _center.longitude)}',
-                      style: const TextStyle(color: AppColors.muted),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  AppButton(
-                    label: i18n.t('location.confirm'),
-                    expanded: true,
-                    onPressed: _canConfirm && !_resolving ? _confirm : null,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

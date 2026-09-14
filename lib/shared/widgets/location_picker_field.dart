@@ -76,7 +76,10 @@ class LocationPickerField extends StatelessWidget {
               else ...[
                 Text(selected.address, style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text(selected.city, style: const TextStyle(color: AppColors.muted)),
+                Text(
+                  selected.areaLabel.isNotEmpty ? selected.areaLabel : selected.city,
+                  style: const TextStyle(color: AppColors.muted),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   formatCoordinates(selected.lat, selected.lng),

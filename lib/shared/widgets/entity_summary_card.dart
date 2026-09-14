@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_theme.dart';
+import 'app_glyph.dart';
 
 class EntityFact {
   const EntityFact(this.label, this.value);
@@ -15,7 +15,7 @@ class EntitySummaryCard extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
-    this.icon = Icons.inventory_2_outlined,
+    this.icon = Icons.inventory_2_rounded,
     this.badge,
     this.facts = const [],
     this.footer,
@@ -48,15 +48,7 @@ class EntitySummaryCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.navySoft,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      ),
-                      child: Icon(icon, color: AppColors.navy, size: 20),
-                    ),
+                    AppGlyph(icon: icon, size: 48, iconSize: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

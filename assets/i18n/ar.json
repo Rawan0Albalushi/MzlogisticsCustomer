@@ -79,6 +79,10 @@
   "common.name": "الاسم",
   "common.city": "المدينة",
   "common.address": "العنوان",
+  "location.governorate": "المحافظة",
+  "location.wilayat": "الولاية",
+  "location.addressHint": "الشارع، رقم المبنى أو المعلم",
+  "location.autoFilledFromMap": "تُعبأ المحافظة والولاية تلقائياً من الخريطة",
   "common.country": "الدولة",
   "common.offline": "يبدو أنك غير متصل بالشبكة.",
 
@@ -173,6 +177,7 @@
   "shipment.detail": "طلب الشحن",
   "shipment.cargo": "البضاعة",
   "shipment.route": "المسار",
+  "progress.stage": "مرحلة الطلب",
   "shipment.schedule": "الجدول",
   "shipment.stepCargo": "بيانات البضاعة",
   "shipment.stepRoute": "التحميل والتسليم",
