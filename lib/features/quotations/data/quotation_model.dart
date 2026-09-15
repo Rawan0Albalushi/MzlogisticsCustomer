@@ -43,6 +43,8 @@ class Quotation {
   final DateTime? createdAt;
 
   bool get canAccept => status == 'submitted';
+  bool get isAccepted => status == 'accepted';
+  bool get isSubmitted => status == 'submitted';
 
   factory Quotation.fromJson(Map<String, dynamic> json) {
     return Quotation(

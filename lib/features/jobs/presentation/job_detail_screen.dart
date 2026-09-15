@@ -16,6 +16,8 @@ import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../payments/presentation/widgets/payment_terms_readout.dart';
+import '../../invoices/presentation/invoice_payment_flow.dart';
 import '../../trips/presentation/widgets/trip_status.dart';
 import '../data/job_model.dart';
 import 'job_providers.dart';
@@ -84,6 +86,12 @@ class JobDetailScreen extends ConsumerWidget {
                         i18n.t('job.tripsCount', {'count': '${job.trips.length}'}),
                         icon: Icons.alt_route_outlined,
                       ),
+                      if (job.shipment != null)
+                        EntityFact(
+                          i18n.t('paymentContract.title'),
+                          job.shipment!.paymentTerms.label(i18n),
+                          icon: Icons.event_available_outlined,
+                        ),
                     ],
                     footer: from != null || to != null
                         ? AppRoutePanel(
@@ -172,12 +180,46 @@ class JobDetailScreen extends ConsumerWidget {
                   AppAppear(
                     index: 3,
                     child: SectionCard(
+                      title: i18n.t('paymentContract.title'),
+                      icon: Icons.payments_outlined,
+                      child: PaymentTermsReadout(i18n: i18n, terms: job.shipment!.paymentTerms),
+                    ),
+                  ),
+                ],
+                if (job.shipment != null || job.payableInvoices.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  AppAppear(
+                    index: 4,
+                    child: SectionCard(
                       title: i18n.t('common.actions'),
                       icon: Icons.touch_app_rounded,
-                      child: AppButton(
-                        label: i18n.t('job.viewShipment'),
-                        icon: Icons.inventory_2_outlined,
-                        onPressed: () => context.push('/shipments/${job.shipment!.id}'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final invoice in job.payableInvoices) ...[
+                            AppButton(
+                              label: invoice.tripReference == null
+                                  ? i18n.t('invoice.pay')
+                                  : i18n.t('invoice.payTrip', {'trip': invoice.tripReference!}),
+                              icon: Icons.payments_outlined,
+                              onPressed: () => startInvoicePayment(
+                                context: context,
+                                ref: ref,
+                                invoice: invoice,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                          if (job.shipment != null)
+                            AppButton(
+                              label: i18n.t('job.viewShipment'),
+                              icon: Icons.inventory_2_outlined,
+                              variant: job.payableInvoices.isNotEmpty
+                                  ? AppButtonVariant.secondary
+                                  : AppButtonVariant.primary,
+                              onPressed: () => context.push('/shipments/${job.shipment!.id}'),
+                            ),
+                        ],
                       ),
                     ),
                   ),

@@ -8,6 +8,8 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/loading_state.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../payments/presentation/payment_contract_providers.dart';
+import '../../payments/presentation/widgets/payment_contract_card.dart';
 import 'widgets/profile_edit_sheets.dart';
 import 'widgets/profile_sections.dart';
 
@@ -31,6 +33,7 @@ class ProfileScreen extends ConsumerWidget {
       i18n: i18n,
       organization: user.organization,
     );
+    final paymentContract = ProfilePaymentContractCard(i18n: i18n);
     final settings = ProfileSettingsCard(
       i18n: i18n,
       selectedLanguage: i18n.locale.languageCode,
@@ -45,7 +48,10 @@ class ProfileScreen extends ConsumerWidget {
     return ContentWidth(
       child: RefreshIndicator(
         color: AppColors.navy,
-        onRefresh: () => ref.read(authControllerProvider.notifier).refreshProfile(),
+        onRefresh: () async {
+          await ref.read(authControllerProvider.notifier).refreshProfile();
+          ref.invalidate(paymentContractProvider);
+        },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -61,6 +67,8 @@ class ProfileScreen extends ConsumerWidget {
                         account,
                         const SizedBox(height: gap),
                         organization,
+                        const SizedBox(height: gap),
+                        paymentContract,
                       ],
                     ),
                   ),
@@ -72,6 +80,8 @@ class ProfileScreen extends ConsumerWidget {
               account,
               const SizedBox(height: gap),
               organization,
+              const SizedBox(height: gap),
+              paymentContract,
               const SizedBox(height: gap),
               settings,
             ],

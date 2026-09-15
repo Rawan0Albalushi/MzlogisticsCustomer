@@ -13,6 +13,7 @@ class UserAccount {
     this.organizationId,
     this.organization,
     this.roles = const [],
+    this.permissions = const [],
     this.lastLoginAt,
   });
 
@@ -26,7 +27,11 @@ class UserAccount {
   final int? organizationId;
   final Organization? organization;
   final List<String> roles;
+  final List<String> permissions;
   final DateTime? lastLoginAt;
+
+  bool get canManageCompany =>
+      permissions.contains('company.manage') || roles.contains('Company Admin');
 
   factory UserAccount.fromJson(Map<String, dynamic> json) {
     return UserAccount(
@@ -42,6 +47,7 @@ class UserAccount {
           ? Organization.fromJson(asMap(json['organization']))
           : null,
       roles: asList(json['roles']).map((item) => item.toString()).toList(),
+      permissions: asList(json['permissions']).map((item) => item.toString()).toList(),
       lastLoginAt: asDateTime(json['last_login_at']),
     );
   }

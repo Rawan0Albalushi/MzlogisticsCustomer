@@ -4,6 +4,7 @@ class Payment {
   const Payment({
     required this.id,
     this.reference,
+    this.invoiceId,
     this.amount,
     this.commissionAmount,
     this.providerAmount,
@@ -19,6 +20,7 @@ class Payment {
 
   final int id;
   final String? reference;
+  final int? invoiceId;
   final double? amount;
   final double? commissionAmount;
   final double? providerAmount;
@@ -35,6 +37,7 @@ class Payment {
     return Payment(
       id: asInt(json['id']) ?? 0,
       reference: asString(json['reference']),
+      invoiceId: asInt(json['invoice_id']),
       amount: asDouble(json['amount']),
       commissionAmount: asDouble(json['commission_amount']),
       providerAmount: asDouble(json['provider_amount']),

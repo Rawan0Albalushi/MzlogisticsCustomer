@@ -4,55 +4,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../payments/data/payment_method_model.dart';
-import '../../payments/presentation/payment_providers.dart';
+import '../../payments/presentation/select_payment_method_dialog.dart';
 
 Future<String?> showAcceptQuotationDialog({
   required BuildContext context,
   required WidgetRef ref,
+  bool prepaid = true,
 }) async {
-  final i18n = ref.i18n;
-  final methods = await ref.read(activePaymentMethodsProvider.future);
-  if (!context.mounted) return null;
-  if (methods.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(i18n.t('quotation.noPaymentMethods'))),
+  if (prepaid) {
+    return showSelectPaymentMethodDialog(
+      context: context,
+      ref: ref,
+      titleKey: 'quotation.accept',
+      confirmHintKey: 'quotation.acceptConfirm',
     );
-    return null;
   }
 
-  var selected = methods.first.code;
+  final i18n = ref.i18n;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) {
       return AlertDialog(
         title: Text(i18n.t('quotation.accept')),
-        content: StatefulBuilder(
-          builder: (context, setLocal) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(i18n.t('quotation.acceptConfirm'), style: const TextStyle(color: AppColors.muted)),
-                const SizedBox(height: 16),
-                Text(i18n.t('quotation.paymentMethod')),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: selected,
-                  items: [
-                    for (final method in methods)
-                      DropdownMenuItem(
-                        value: method.code,
-                        child: Text(_methodLabel(i18n, method)),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setLocal(() => selected = value);
-                  },
-                ),
-              ],
-            );
-          },
+        content: Text(
+          i18n.t('quotation.acceptDeferred'),
+          style: const TextStyle(color: AppColors.muted),
         ),
         actions: [
           AppButton(
@@ -69,10 +45,5 @@ Future<String?> showAcceptQuotationDialog({
     },
   );
 
-  if (confirmed != true) return null;
-  return selected;
-}
-
-String _methodLabel(I18nBundle i18n, PaymentMethod method) {
-  return method.displayName(i18n.locale.languageCode);
+  return confirmed == true ? '' : null;
 }

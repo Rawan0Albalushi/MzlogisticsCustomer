@@ -1,5 +1,6 @@
 import '../../../core/utils/json_utils.dart';
 import '../../../shared/models/organization.dart';
+import '../../invoices/data/invoice_model.dart';
 import '../../quotations/data/quotation_model.dart';
 import '../../shipments/data/shipment_model.dart';
 import '../../trips/data/trip_model.dart';
@@ -21,6 +22,7 @@ class TransportJob {
     this.shipment,
     this.quotation,
     this.trips = const [],
+    this.invoices = const [],
     this.createdAt,
   });
 
@@ -39,7 +41,17 @@ class TransportJob {
   final ShipmentRequest? shipment;
   final Quotation? quotation;
   final List<Trip> trips;
+  final List<Invoice> invoices;
   final DateTime? createdAt;
+
+  List<Invoice> get payableInvoices => invoices.where((invoice) => invoice.payable).toList();
+
+  Invoice? get payableInvoice {
+    for (final invoice in invoices) {
+      if (invoice.payable) return invoice;
+    }
+    return null;
+  }
 
   factory TransportJob.fromJson(Map<String, dynamic> json) {
     return TransportJob(
@@ -68,6 +80,10 @@ class TransportJob {
       trips: asList(json['trips'])
           .whereType<Map>()
           .map((item) => Trip.fromJson(asMap(item)))
+          .toList(),
+      invoices: asList(json['invoices'])
+          .whereType<Map>()
+          .map((item) => Invoice.fromJson(asMap(item)))
           .toList(),
       createdAt: asDateTime(json['created_at']),
     );

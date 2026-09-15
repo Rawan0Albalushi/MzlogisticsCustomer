@@ -13,6 +13,7 @@ import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../data/invoice_model.dart';
+import 'invoice_payment_flow.dart';
 import 'invoice_providers.dart';
 
 enum _InvoiceFilter { all, issued, paid, closed }
@@ -139,6 +140,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                   DataColumn(label: Text(i18n.t('invoice.due'))),
                   DataColumn(label: Text(i18n.t('common.status'))),
                   DataColumn(label: Text(i18n.t('invoice.job'))),
+                  DataColumn(label: Text(i18n.t('common.actions'))),
                 ],
                 rows: [
                   for (final invoice in visible)
@@ -158,6 +160,18 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
                                   child: Text(invoice.jobReference ?? i18n.t('common.view')),
                                 ),
                         ),
+                        DataCell(
+                          invoice.payable
+                              ? TextButton(
+                                  onPressed: () => startInvoicePayment(
+                                    context: context,
+                                    ref: ref,
+                                    invoice: invoice,
+                                  ),
+                                  child: Text(i18n.t('invoice.pay')),
+                                )
+                              : const Text('—'),
+                        ),
                       ],
                     ),
                 ],
@@ -172,10 +186,14 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
           itemBuilder: (context, invoice) {
             return AppListCard(
               embedded: true,
-              showChevron: invoice.jobId != null,
-              onTap: invoice.jobId == null ? null : () => context.push('/jobs/${invoice.jobId}'),
+              showChevron: invoice.jobId != null || invoice.payable,
+              onTap: invoice.payable
+                  ? () => startInvoicePayment(context: context, ref: ref, invoice: invoice)
+                  : invoice.jobId == null
+                      ? null
+                      : () => context.push('/jobs/${invoice.jobId}'),
               title: invoice.reference ?? i18n.t('invoice.title'),
-              subtitle: invoice.type ?? '',
+              subtitle: invoice.payable ? i18n.t('invoice.pay') : invoice.type ?? '',
               meta: formatAmount(invoice.amount, currency: invoice.currency ?? 'OMR'),
               trailing: StatusBadge(status: invoice.status ?? '', label: i18n.status(invoice.status)),
             );

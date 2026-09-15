@@ -241,7 +241,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       lng: _selected?.lng ?? _center.longitude,
       placeId: _selected?.placeId,
     );
-    if (location.address.isEmpty || location.city.isEmpty || !location.hasCoordinates) {
+    if (location.city.isEmpty || !location.hasCoordinates) {
       return;
     }
     Navigator.of(context).pop(location);
@@ -258,9 +258,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
   }
 
   bool get _canConfirm {
-    return _address.text.trim().isNotEmpty &&
-        _composedCity().isNotEmpty &&
-        _selected != null;
+    return _composedCity().isNotEmpty && _selected != null;
   }
 
   @override
@@ -429,7 +427,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                       ),
                       const SizedBox(height: 12),
                       AppTextField(
-                        label: i18n.t('common.address'),
+                        label: '${i18n.t('common.address')} (${i18n.t('common.optional')})',
                         hint: i18n.t('location.addressHint'),
                         controller: _address,
                         onChanged: (_) => setState(() {}),

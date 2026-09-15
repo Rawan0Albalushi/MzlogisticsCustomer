@@ -11,6 +11,8 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/location_picker_field.dart';
 import '../../../shared/widgets/page_scaffold.dart';
+import '../../payments/presentation/payment_contract_providers.dart';
+import '../../payments/presentation/widgets/payment_terms_fields.dart';
 import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
 import '../data/shipment_repository.dart';
@@ -39,6 +41,10 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   bool _submitting = false;
   int _step = 0;
   String? _error;
+  String _billingTrigger = 'on_delivery';
+  String _billingUnit = 'job';
+  int _dueDays = 0;
+  bool _paymentPrefillDone = false;
 
   @override
   void dispose() {
@@ -67,7 +73,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
       }
     }
     if (_step == 1) {
-      if (_pickup == null || _pickup!.address.isEmpty || _pickup!.city.isEmpty) {
+      if (_pickup == null || _pickup!.city.isEmpty) {
         _error = i18n.t('shipment.pickupRequired');
         return false;
       }
@@ -75,7 +81,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
         _error = i18n.t('location.pickupMapRequired');
         return false;
       }
-      if (_delivery == null || _delivery!.address.isEmpty || _delivery!.city.isEmpty) {
+      if (_delivery == null || _delivery!.city.isEmpty) {
         _error = i18n.t('shipment.deliveryRequired');
         return false;
       }
@@ -137,6 +143,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
               requiredDate: _requiredDate!,
               notes: _notes.text.trim(),
               publish: publish,
+              billingTrigger: _billingTrigger,
+              dueDays: _dueDays,
+              billingUnit: _billingUnit,
             ),
           );
       ref.invalidate(shipmentsProvider);
@@ -161,6 +170,21 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   Widget build(BuildContext context) {
     final i18n = ref.i18n;
     final desktop = context.isDesktop;
+    final contractAsync = ref.watch(paymentContractProvider);
+    contractAsync.whenData((contract) {
+      if (_paymentPrefillDone) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _paymentPrefillDone) return;
+        setState(() {
+          _paymentPrefillDone = true;
+          _billingTrigger = contract.billingTrigger == 'on_award'
+              ? 'on_delivery'
+              : contract.billingTrigger;
+          _billingUnit = contract.billingUnit;
+          _dueDays = contract.dueDays;
+        });
+      });
+    });
     final steps = [
       i18n.t('shipment.stepCargo'),
       i18n.t('shipment.stepRoute'),
@@ -388,6 +412,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
 
   Widget _scheduleFields(I18nBundle i18n) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -405,6 +430,31 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           hint: i18n.t('shipment.notesHint'),
           controller: _notes,
           maxLines: 3,
+        ),
+        const SizedBox(height: 16),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(
+            i18n.t('paymentContract.title'),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          i18n.t('paymentContract.wizardHint'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted, height: 1.4),
+        ),
+        const SizedBox(height: 8),
+        PaymentTermsFields(
+          i18n: i18n,
+          trigger: _billingTrigger,
+          unit: _billingUnit,
+          dueDays: _dueDays,
+          referenceDate: _requiredDate,
+          enabled: !_submitting,
+          onTriggerChanged: (value) => setState(() => _billingTrigger = value),
+          onUnitChanged: (value) => setState(() => _billingUnit = value),
+          onDueDaysChanged: (value) => setState(() => _dueDays = value),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

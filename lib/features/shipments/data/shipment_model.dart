@@ -1,5 +1,6 @@
 import '../../../core/utils/json_utils.dart';
 import '../../../shared/models/organization.dart';
+import '../../payments/data/payment_contract_model.dart';
 import '../../quotations/data/quotation_model.dart';
 
 class ShipmentRequest {
@@ -27,6 +28,7 @@ class ShipmentRequest {
     this.customer,
     this.quotations = const [],
     this.quotationsCount,
+    this.paymentTerms = const PaymentTermsSnapshot(),
     this.createdAt,
   });
 
@@ -53,11 +55,20 @@ class ShipmentRequest {
   final Organization? customer;
   final List<Quotation> quotations;
   final int? quotationsCount;
+  final PaymentTermsSnapshot paymentTerms;
   final DateTime? createdAt;
 
   bool get canPublish => status == 'draft';
   bool get canCancel => status == 'draft' || status == 'published';
   bool get canEdit => status == 'draft';
+  bool get isPrepaid => paymentTerms.prepaid;
+  bool get isAwarded => status == 'awarded';
+
+  /// Comparison is only for open requests that still need a decision.
+  bool get canCompareQuotations => status == 'published';
+
+  List<Quotation> get awardedQuotations =>
+      quotations.where((quotation) => quotation.isAccepted).toList();
 
   String get routeLabel {
     final from = pickupCity ?? pickupAddress ?? '—';
@@ -95,6 +106,9 @@ class ShipmentRequest {
           .map((item) => Quotation.fromJson(asMap(item)))
           .toList(),
       quotationsCount: asInt(json['quotations_count']),
+      paymentTerms: PaymentTermsSnapshot.fromJson(
+        json['payment_terms'] is Map ? asMap(json['payment_terms']) : null,
+      ),
       createdAt: asDateTime(json['created_at']),
     );
   }
@@ -119,6 +133,9 @@ class CreateShipmentPayload {
     required this.requiredDate,
     this.notes,
     this.publish = false,
+    this.billingTrigger = 'on_delivery',
+    this.dueDays = 0,
+    this.billingUnit = 'job',
   });
 
   final String cargoType;
@@ -138,6 +155,9 @@ class CreateShipmentPayload {
   final DateTime requiredDate;
   final String? notes;
   final bool publish;
+  final String billingTrigger;
+  final int dueDays;
+  final String billingUnit;
 
   Map<String, dynamic> toJson() {
     return {
@@ -147,7 +167,8 @@ class CreateShipmentPayload {
       'weight_tons': weightTons,
       if (volumeCbm != null) 'volume_cbm': volumeCbm,
       'quantity': quantity,
-      if (quantityUnit != null && quantityUnit!.isNotEmpty) 'quantity_unit': quantityUnit,
+      if (quantityUnit != null && quantityUnit!.isNotEmpty)
+        'quantity_unit': quantityUnit,
       'pickup_address': pickupAddress,
       'pickup_city': pickupCity,
       if (pickupLat != null) 'pickup_lat': pickupLat,
@@ -159,6 +180,9 @@ class CreateShipmentPayload {
       'required_date': requiredDate.toIso8601String().split('T').first,
       if (notes != null && notes!.isNotEmpty) 'notes': notes,
       'publish': publish,
+      'billing_trigger': billingTrigger,
+      'due_days': billingTrigger == 'on_award' ? 0 : dueDays,
+      'billing_unit': billingTrigger == 'on_award' ? 'job' : billingUnit,
     };
   }
 }

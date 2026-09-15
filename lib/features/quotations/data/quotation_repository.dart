@@ -33,10 +33,12 @@ class QuotationRepository {
     return Quotation.fromJson(envelope.map);
   }
 
-  Future<QuotationAcceptResult> accept(int id, {required String paymentMethod}) async {
+  Future<QuotationAcceptResult> accept(int id, {String? paymentMethod}) async {
     final envelope = await _api.post(
       '/quotations/$id/accept',
-      data: {'payment_method': paymentMethod},
+      data: {
+        if (paymentMethod != null && paymentMethod.isNotEmpty) 'payment_method': paymentMethod,
+      },
     );
     final map = envelope.map;
     if (asBool(map['requires_checkout'])) {

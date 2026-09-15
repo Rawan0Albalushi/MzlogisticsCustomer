@@ -12,5 +12,12 @@ class PaymentStatusResult {
   final Payment? payment;
   final TransportJob? job;
 
-  bool get isPaid => status == 'completed' || job != null;
+  bool get isPaid {
+    final value = (status ?? payment?.status)?.toLowerCase();
+    return value == 'completed' || value == 'paid';
+  }
+
+  bool get isInvoicePayment => payment?.invoiceId != null;
+
+  bool get settlesExistingJob => isInvoicePayment || job != null;
 }

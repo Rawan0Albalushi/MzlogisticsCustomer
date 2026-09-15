@@ -10,10 +10,13 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/page_scaffold.dart';
+import '../../invoices/presentation/invoice_providers.dart';
+import '../../jobs/presentation/job_providers.dart';
 import '../data/checkout_launcher.dart';
 import '../data/checkout_webview.dart';
 import '../data/payment_repository.dart';
 import '../data/payment_return.dart';
+import '../data/payment_status_result.dart';
 import 'payment_providers.dart';
 
 class PaymentCheckoutScreen extends ConsumerStatefulWidget {
@@ -21,10 +24,14 @@ class PaymentCheckoutScreen extends ConsumerStatefulWidget {
     super.key,
     required this.paymentId,
     this.paymentLink,
+    this.jobId,
+    this.invoicePayment = false,
   });
 
   final int paymentId;
   final String? paymentLink;
+  final int? jobId;
+  final bool invoicePayment;
 
   @override
   ConsumerState<PaymentCheckoutScreen> createState() => _PaymentCheckoutScreenState();
@@ -38,6 +45,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
   bool _pageReady = false;
   String? _error;
   String? _checkoutUrl;
+  int? _jobId;
 
   bool get _useInAppCheckout => !kIsWeb && (_checkoutUrl?.isNotEmpty ?? false);
 
@@ -45,6 +53,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
   void initState() {
     super.initState();
     _checkoutUrl = widget.paymentLink;
+    _jobId = widget.jobId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (_useInAppCheckout) {
@@ -136,13 +145,8 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
     try {
       final result = await ref.read(paymentRepositoryProvider).status(widget.paymentId);
       if (!mounted || _finished) return;
-      if (result.isPaid && result.job != null) {
-        _finished = true;
-        _poll?.cancel();
-        ref.invalidate(paymentsProvider);
-        context.go('/jobs/${result.job!.id}');
-        return;
-      }
+      if (result.job != null) _jobId = result.job!.id;
+      if (_leaveIfPaid(result)) return;
       final link = result.payment?.paymentLink;
       if (!kIsWeb && link != null && link.isNotEmpty) {
         _checkoutUrl = link;
@@ -177,11 +181,10 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
   }
 
   Future<void> _finish(Uri uri) async {
-    if (_finished || !mounted) return;
     _finished = true;
     _poll?.cancel();
     if (PaymentReturn.isCancel(uri)) {
-      context.go('/payment/cancel?payment_id=${widget.paymentId}');
+      _goCancelled();
       return;
     }
     context.go('/payment/success?payment_id=${widget.paymentId}');
@@ -192,15 +195,38 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
     try {
       final result = await ref.read(paymentRepositoryProvider).status(widget.paymentId);
       if (!mounted || _finished) return;
-      if (result.isPaid && result.job != null) {
-        _finished = true;
-        _poll?.cancel();
-        ref.invalidate(paymentsProvider);
-        context.go('/jobs/${result.job!.id}');
-      }
+      if (result.job != null) _jobId = result.job!.id;
+      _leaveIfPaid(result);
     } catch (_) {
       // Keep polling until checkout finishes or the user cancels.
     }
+  }
+
+  bool _leaveIfPaid(PaymentStatusResult result) {
+    if (!result.isPaid) return false;
+    _finished = true;
+    _poll?.cancel();
+    ref.invalidate(paymentsProvider);
+    ref.invalidate(invoicesProvider);
+    ref.invalidate(jobsProvider);
+    if (result.job != null) {
+      ref.invalidate(jobDetailProvider(result.job!.id));
+      context.go('/jobs/${result.job!.id}');
+    } else {
+      context.go('/payment/success?payment_id=${widget.paymentId}');
+    }
+    return true;
+  }
+
+  void _goCancelled() {
+    _finished = true;
+    _poll?.cancel();
+    if (!mounted) return;
+    final query = StringBuffer('payment_id=${widget.paymentId}');
+    final jobId = _jobId;
+    if (jobId != null) query.write('&job_id=$jobId');
+    if (widget.invoicePayment || jobId != null) query.write('&invoice=1');
+    context.go('/payment/cancel?$query');
   }
 
   @override
@@ -214,7 +240,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
           leading: IconButton(
             icon: const Icon(Icons.close),
             tooltip: i18n.t('common.cancel'),
-            onPressed: () => context.go('/payment/cancel?payment_id=${widget.paymentId}'),
+            onPressed: _goCancelled,
           ),
           actions: [
             TextButton(

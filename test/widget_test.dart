@@ -20,7 +20,9 @@ void main() {
     expect(formatAmount(12.5), contains('OMR'));
   });
 
-  testWidgets('compact shipment card shows cargo, route, and quote facts', (tester) async {
+  testWidgets('compact shipment card shows cargo, route, and quote facts', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -86,5 +88,16 @@ void main() {
     await tester.tap(find.byType(InkWell).first);
     await tester.pumpAndSettle();
     expect(find.text('shipment-detail'), findsOneWidget);
+  });
+
+  test('published shipments can compare quotations until awarded', () {
+    const published = ShipmentRequest(id: 1, status: 'published');
+    const awarded = ShipmentRequest(id: 2, status: 'awarded');
+    const cancelled = ShipmentRequest(id: 3, status: 'cancelled');
+
+    expect(published.canCompareQuotations, isTrue);
+    expect(awarded.canCompareQuotations, isFalse);
+    expect(awarded.isAwarded, isTrue);
+    expect(cancelled.canCompareQuotations, isFalse);
   });
 }

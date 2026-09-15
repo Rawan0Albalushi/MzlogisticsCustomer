@@ -75,16 +75,25 @@ class LocationPickerField extends StatelessWidget {
                   style: const TextStyle(color: AppColors.muted),
                 )
               else ...[
-                Text(
-                  bidiIsolate(selected.address),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
+                if (selected.address.trim().isNotEmpty) ...[
+                  Text(
+                    bidiIsolate(selected.address),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Text(
                   bidiIsolate(
                     selected.areaLabel.isNotEmpty ? selected.areaLabel : selected.city,
                   ),
-                  style: const TextStyle(color: AppColors.muted),
+                  style: TextStyle(
+                    fontWeight: selected.address.trim().isEmpty
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                    color: selected.address.trim().isEmpty
+                        ? AppColors.ink
+                        : AppColors.muted,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(

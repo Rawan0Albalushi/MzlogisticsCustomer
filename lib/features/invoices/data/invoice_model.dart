@@ -13,7 +13,10 @@ class Invoice {
     this.dueAt,
     this.jobReference,
     this.jobId,
+    this.tripId,
+    this.tripReference,
     this.payment,
+    this.payable = false,
   });
 
   final int id;
@@ -26,10 +29,14 @@ class Invoice {
   final DateTime? dueAt;
   final String? jobReference;
   final int? jobId;
+  final int? tripId;
+  final String? tripReference;
   final Payment? payment;
+  final bool payable;
 
   factory Invoice.fromJson(Map<String, dynamic> json) {
     final job = asMap(json['job']);
+    final trip = asMap(json['trip']);
     return Invoice(
       id: asInt(json['id']) ?? 0,
       reference: asString(json['reference']),
@@ -41,7 +48,10 @@ class Invoice {
       dueAt: asDateTime(json['due_at']),
       jobReference: asString(job['reference']),
       jobId: asInt(job['id']),
+      tripId: asInt(json['trip_id']) ?? asInt(trip['id']),
+      tripReference: asString(trip['reference']),
       payment: json['payment'] is Map ? Payment.fromJson(asMap(json['payment'])) : null,
+      payable: asBool(json['payable']),
     );
   }
 }

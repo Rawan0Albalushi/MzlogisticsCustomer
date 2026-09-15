@@ -18,6 +18,7 @@ import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/location_preview.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../payments/presentation/widgets/payment_terms_readout.dart';
 import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
 import '../data/shipment_repository.dart';
@@ -30,7 +31,8 @@ class ShipmentDetailScreen extends ConsumerStatefulWidget {
   final int shipmentId;
 
   @override
-  ConsumerState<ShipmentDetailScreen> createState() => _ShipmentDetailScreenState();
+  ConsumerState<ShipmentDetailScreen> createState() =>
+      _ShipmentDetailScreenState();
 }
 
 class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
@@ -44,16 +46,16 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
       ref.invalidate(shipmentDetailProvider(widget.shipmentId));
       ref.invalidate(shipmentsProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ref.i18n.t(successKey))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(ref.i18n.t(successKey))));
     } catch (error) {
       if (!mounted) return;
       final i18n = ref.i18n;
       final message = error is ApiException && error.message == 'network'
           ? i18n.t('common.networkError')
           : error.toString();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -77,7 +79,8 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
       body: AsyncBody<ShipmentRequest>(
         value: value,
         i18n: i18n,
-        onRetry: () => ref.invalidate(shipmentDetailProvider(widget.shipmentId)),
+        onRetry: () =>
+            ref.invalidate(shipmentDetailProvider(widget.shipmentId)),
         onRefresh: () async {
           ref.invalidate(shipmentDetailProvider(widget.shipmentId));
           await ref.read(shipmentDetailProvider(widget.shipmentId).future);
@@ -90,9 +93,22 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
           final title = (cargo != null && cargo.isNotEmpty)
               ? cargo
               : (reference != null && reference.isNotEmpty)
-                  ? reference
-                  : i18n.t('shipment.detail');
+              ? reference
+              : i18n.t('shipment.detail');
           final quotes = shipment.quotationsCount ?? shipment.quotations.length;
+          final listedQuotes = shipment.canCompareQuotations
+              ? shipment.quotations
+              : shipment.awardedQuotations;
+          final showCompare = shipment.canCompareQuotations;
+          final showActions =
+              showCompare || shipment.canPublish || shipment.canCancel;
+          final quoteFact = quotes <= 0
+              ? i18n.t('shipment.waitingQuotes')
+              : showCompare
+              ? i18n.t('shipment.viewQuotations')
+              : shipment.isAwarded
+              ? i18n.t('shipment.quoteAccepted')
+              : i18n.status(status);
 
           return ContentWidth(
             child: ListView(
@@ -102,11 +118,17 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                   index: 0,
                   child: EntitySummaryCard(
                     title: title,
-                    subtitle: cargo != null && cargo.isNotEmpty ? reference : null,
+                    subtitle: cargo != null && cargo.isNotEmpty
+                        ? reference
+                        : null,
                     icon: shipmentStatusIcon(status),
                     tone: shipmentStatusTone(status),
-                    accent: AppColors.statusForeground(status).withValues(alpha: 0.85),
-                    badge: StatusBadge(status: status, label: i18n.status(status)),
+                    accent: AppColors.statusForeground(status)
+                        .withValues(alpha: 0.85),
+                    badge: StatusBadge(
+                      status: status,
+                      label: i18n.status(status),
+                    ),
                     facts: [
                       EntityFact(
                         i18n.t('shipment.requiredDate'),
@@ -119,16 +141,27 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         icon: Icons.inventory_2_outlined,
                       ),
                       EntityFact(
-                        i18n.t('shipment.quotationsCount', {'count': '$quotes'}),
-                        quotes > 0 ? i18n.t('shipment.viewQuotations') : i18n.t('shipment.waitingQuotes'),
+                        i18n.t('shipment.quotationsCount', {
+                          'count': '$quotes',
+                        }),
+                        quoteFact,
                         icon: Icons.request_quote_outlined,
+                      ),
+                      EntityFact(
+                        i18n.t('paymentContract.title'),
+                        shipment.paymentTerms.label(i18n),
+                        icon: Icons.payments_outlined,
                       ),
                     ],
                     footer: AppRoutePanel(
                       fromLabel: i18n.t('common.pickup'),
                       toLabel: i18n.t('common.delivery'),
-                      from: shipment.pickupCity ?? shipment.pickupAddress ?? '—',
-                      to: shipment.deliveryCity ?? shipment.deliveryAddress ?? '—',
+                      from:
+                          shipment.pickupCity ?? shipment.pickupAddress ?? '—',
+                      to:
+                          shipment.deliveryCity ??
+                          shipment.deliveryAddress ??
+                          '—',
                     ),
                   ),
                 ),
@@ -157,7 +190,9 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         ),
                       ],
                       currentId: _shipmentStep(shipment.status),
-                      failed: shipment.status == 'cancelled' || shipment.status == 'expired',
+                      failed:
+                          shipment.status == 'cancelled' ||
+                          shipment.status == 'expired',
                     ),
                   ),
                 ),
@@ -178,12 +213,16 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         ),
                         InfoRow(
                           label: i18n.t('shipment.weight'),
-                          value: '${formatNumber(shipment.weightTons)} ${i18n.t('common.tons')}',
+                          value:
+                              '${formatNumber(shipment.weightTons)} ${i18n.t('common.tons')}',
                           icon: Icons.scale_outlined,
                         ),
                         if (!QuantityUnits.isTons(shipment.quantityUnit))
                           InfoRow(
-                            label: QuantityUnits.countFieldLabel(i18n, shipment.quantityUnit ?? ''),
+                            label: QuantityUnits.countFieldLabel(
+                              i18n,
+                              shipment.quantityUnit ?? '',
+                            ),
                             value: QuantityUnits.formatQuantity(
                               i18n,
                               shipment.quantity,
@@ -216,6 +255,18 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                 AppAppear(
                   index: 3,
                   child: SectionCard(
+                    title: i18n.t('paymentContract.title'),
+                    icon: Icons.payments_outlined,
+                    child: PaymentTermsReadout(
+                      i18n: i18n,
+                      terms: shipment.paymentTerms,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                AppAppear(
+                  index: 4,
+                  child: SectionCard(
                     title: i18n.t('shipment.route'),
                     icon: Icons.route_rounded,
                     child: Column(
@@ -241,7 +292,10 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         const SizedBox(height: 12),
                         InfoRow(
                           label: i18n.t('shipment.requiredDate'),
-                          value: formatDate(shipment.requiredDate, locale: locale),
+                          value: formatDate(
+                            shipment.requiredDate,
+                            locale: locale,
+                          ),
                           icon: Icons.event_outlined,
                         ),
                         if (shipment.notes != null)
@@ -255,43 +309,58 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                     ),
                   ),
                 ),
-                if (shipment.quotations.isNotEmpty) ...[
+                if (listedQuotes.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   AppAppear(
-                    index: 4,
+                    index: 5,
                     child: SectionCard(
-                      title: i18n.t('shipment.quotationsCount', {
-                        'count': '${shipment.quotations.length}',
-                      }),
+                      title: showCompare
+                          ? i18n.t('shipment.quotationsCount', {
+                              'count': '${listedQuotes.length}',
+                            })
+                          : i18n.t('shipment.awardedQuotation'),
                       icon: Icons.request_quote_rounded,
-                      trailing: AppButton(
-                        label: i18n.t('shipment.viewQuotations'),
-                        variant: AppButtonVariant.ghost,
-                        icon: Icons.compare_arrows_rounded,
-                        onPressed: () => context.push('/shipments/${shipment.id}/quotations'),
-                      ),
+                      trailing: showCompare
+                          ? AppButton(
+                              label: i18n.t('shipment.viewQuotations'),
+                              variant: AppButtonVariant.ghost,
+                              icon: Icons.compare_arrows_rounded,
+                              onPressed: () => context.push(
+                                '/shipments/${shipment.id}/quotations',
+                              ),
+                            )
+                          : null,
                       child: Column(
                         children: [
-                          for (var index = 0; index < shipment.quotations.length; index++) ...[
+                          for (
+                            var index = 0;
+                            index < listedQuotes.length;
+                            index++
+                          ) ...[
                             if (index > 0) const Divider(height: 16),
                             AppListCard(
                               embedded: true,
-                              onTap: () => context.push('/quotations/${shipment.quotations[index].id}'),
+                              onTap: () => context.push(
+                                '/quotations/${listedQuotes[index].id}',
+                              ),
                               leading: AppIconWell(
                                 icon: Icons.handshake_outlined,
                                 color: AppColors.navy,
                                 background: AppColors.navySoft,
                               ),
-                              title: shipment.quotations[index].provider?.displayName(locale) ??
-                                  shipment.quotations[index].reference ??
+                              title:
+                                  listedQuotes[index].provider?.displayName(
+                                    locale,
+                                  ) ??
+                                  listedQuotes[index].reference ??
                                   i18n.t('quotation.detail'),
                               meta: formatAmount(
-                                shipment.quotations[index].totalPrice,
-                                currency: shipment.quotations[index].currency ?? 'OMR',
+                                listedQuotes[index].totalPrice,
+                                currency: listedQuotes[index].currency ?? 'OMR',
                               ),
                               trailing: StatusBadge(
-                                status: shipment.quotations[index].status ?? '',
-                                label: i18n.status(shipment.quotations[index].status),
+                                status: listedQuotes[index].status ?? '',
+                                label: i18n.status(listedQuotes[index].status),
                               ),
                             ),
                           ],
@@ -300,65 +369,74 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                AppAppear(
-                  index: 5,
-                  child: SectionCard(
-                    title: i18n.t('common.actions'),
-                    icon: Icons.touch_app_rounded,
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        AppButton(
-                          label: i18n.t('shipment.viewQuotations'),
-                          icon: Icons.request_quote_rounded,
-                          onPressed: () => context.push('/shipments/${shipment.id}/quotations'),
-                        ),
-                        if (shipment.canPublish)
-                          AppButton(
-                            label: i18n.t('shipment.publish'),
-                            icon: Icons.campaign_rounded,
-                            loading: _busy,
-                            onPressed: () async {
-                              final ok = await showConfirmDialog(
-                                context,
-                                i18n: i18n,
-                                title: i18n.t('shipment.publish'),
-                                message: i18n.t('shipment.publishConfirm'),
-                              );
-                              if (!ok) return;
-                              await _act(
-                                () => ref.read(shipmentRepositoryProvider).publish(shipment.id),
-                                'shipment.published',
-                              );
-                            },
-                          ),
-                        if (shipment.canCancel)
-                          AppButton(
-                            label: i18n.t('shipment.cancelRequest'),
-                            icon: Icons.cancel_outlined,
-                            variant: AppButtonVariant.danger,
-                            loading: _busy,
-                            onPressed: () async {
-                              final ok = await showConfirmDialog(
-                                context,
-                                i18n: i18n,
-                                title: i18n.t('shipment.cancelRequest'),
-                                message: i18n.t('shipment.cancelConfirm'),
-                                danger: true,
-                              );
-                              if (!ok) return;
-                              await _act(
-                                () => ref.read(shipmentRepositoryProvider).cancel(shipment.id),
-                                'shipment.cancelled',
-                              );
-                            },
-                          ),
-                      ],
+                if (showActions) ...[
+                  const SizedBox(height: 16),
+                  AppAppear(
+                    index: 6,
+                    child: SectionCard(
+                      title: i18n.t('common.actions'),
+                      icon: Icons.touch_app_rounded,
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          if (showCompare)
+                            AppButton(
+                              label: i18n.t('shipment.viewQuotations'),
+                              icon: Icons.request_quote_rounded,
+                              onPressed: () => context.push(
+                                '/shipments/${shipment.id}/quotations',
+                              ),
+                            ),
+                          if (shipment.canPublish)
+                            AppButton(
+                              label: i18n.t('shipment.publish'),
+                              icon: Icons.campaign_rounded,
+                              loading: _busy,
+                              onPressed: () async {
+                                final ok = await showConfirmDialog(
+                                  context,
+                                  i18n: i18n,
+                                  title: i18n.t('shipment.publish'),
+                                  message: i18n.t('shipment.publishConfirm'),
+                                );
+                                if (!ok) return;
+                                await _act(
+                                  () => ref
+                                      .read(shipmentRepositoryProvider)
+                                      .publish(shipment.id),
+                                  'shipment.published',
+                                );
+                              },
+                            ),
+                          if (shipment.canCancel)
+                            AppButton(
+                              label: i18n.t('shipment.cancelRequest'),
+                              icon: Icons.cancel_outlined,
+                              variant: AppButtonVariant.danger,
+                              loading: _busy,
+                              onPressed: () async {
+                                final ok = await showConfirmDialog(
+                                  context,
+                                  i18n: i18n,
+                                  title: i18n.t('shipment.cancelRequest'),
+                                  message: i18n.t('shipment.cancelConfirm'),
+                                  danger: true,
+                                );
+                                if (!ok) return;
+                                await _act(
+                                  () => ref
+                                      .read(shipmentRepositoryProvider)
+                                      .cancel(shipment.id),
+                                  'shipment.cancelled',
+                                );
+                              },
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           );

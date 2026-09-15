@@ -13,6 +13,7 @@ import '../../features/jobs/presentation/job_detail_screen.dart';
 import '../../features/jobs/presentation/jobs_list_screen.dart';
 import '../../features/notifications/presentation/notification_providers.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/payments/data/checkout_args.dart';
 import '../../features/payments/presentation/billing_screen.dart';
 import '../../features/payments/presentation/payment_checkout_screen.dart';
 import '../../features/payments/presentation/payment_result_screens.dart';
@@ -154,10 +155,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/payments/checkout/:id',
-        builder: (context, state) => PaymentCheckoutScreen(
-          paymentId: int.parse(state.pathParameters['id']!),
-          paymentLink: state.extra is String ? state.extra as String : null,
-        ),
+        builder: (context, state) {
+          final args = CheckoutArgs.fromExtra(state.extra);
+          return PaymentCheckoutScreen(
+            paymentId: int.parse(state.pathParameters['id']!),
+            paymentLink: args.paymentLink,
+            jobId: args.jobId,
+            invoicePayment: args.invoicePayment,
+          );
+        },
       ),
       GoRoute(
         path: '/payment/success',
@@ -171,6 +177,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/payment/cancel',
         builder: (context, state) => PaymentCancelScreen(
           paymentId: int.tryParse(state.uri.queryParameters['payment_id'] ?? ''),
+          jobId: int.tryParse(state.uri.queryParameters['job_id'] ?? ''),
+          invoicePayment: state.uri.queryParameters['invoice'] == '1',
         ),
       ),
     ],
