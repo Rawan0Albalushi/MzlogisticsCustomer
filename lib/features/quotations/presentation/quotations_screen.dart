@@ -8,8 +8,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/pagination_meta.dart';
+import '../../../shared/widgets/app_appear.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_filters.dart';
 import '../../../shared/widgets/async_body.dart';
+import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../jobs/presentation/job_providers.dart';
@@ -29,8 +32,18 @@ class QuotationsScreen extends ConsumerStatefulWidget {
   ConsumerState<QuotationsScreen> createState() => _QuotationsScreenState();
 }
 
+enum _QuotationFilter { all, submitted, accepted, closed }
+
 class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
+  final _search = TextEditingController();
+  _QuotationFilter _filter = _QuotationFilter.all;
   bool _accepting = false;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   Future<void> _accept(Quotation quotation) async {
     final i18n = ref.i18n;
@@ -62,6 +75,56 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
     } finally {
       if (mounted) setState(() => _accepting = false);
     }
+  }
+
+  List<Quotation> _visible(List<Quotation> items) {
+    final query = _search.text.trim().toLowerCase();
+    return items.where((quotation) {
+      if (!_matchesQuotation(quotation.status, _filter)) return false;
+      return matchesSearch(query, [
+        quotation.reference,
+        quotation.provider?.name,
+        quotation.provider?.nameAr,
+        quotation.truckType,
+        quotation.truckTypeLabel,
+      ]);
+    }).toList();
+  }
+
+  List<AppFilterOption<_QuotationFilter>> _quotationOptions(
+    I18nBundle i18n,
+    List<Quotation> items,
+  ) {
+    int count(_QuotationFilter filter) {
+      return items.where((item) => _matchesQuotation(item.status, filter)).length;
+    }
+
+    return [
+      AppFilterOption(
+        value: _QuotationFilter.all,
+        label: i18n.t('common.filterAll'),
+        icon: Icons.apps_rounded,
+        count: count(_QuotationFilter.all),
+      ),
+      AppFilterOption(
+        value: _QuotationFilter.submitted,
+        label: i18n.status('submitted'),
+        icon: Icons.request_quote_outlined,
+        count: count(_QuotationFilter.submitted),
+      ),
+      AppFilterOption(
+        value: _QuotationFilter.accepted,
+        label: i18n.status('accepted'),
+        icon: Icons.check_circle_outline,
+        count: count(_QuotationFilter.accepted),
+      ),
+      AppFilterOption(
+        value: _QuotationFilter.closed,
+        label: i18n.t('common.filterClosed'),
+        icon: Icons.block_rounded,
+        count: count(_QuotationFilter.closed),
+      ),
+    ];
   }
 
   bool _isBestPrice(List<Quotation> items, Quotation quotation) {
@@ -107,10 +170,42 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
         emptyIcon: Icons.request_quote_outlined,
         builder: (page) {
           final items = page.items;
+          final visible = _visible(items);
+          final toolbar = AppListToolbar<_QuotationFilter>(
+            i18n: i18n,
+            search: _search,
+            searchHint: i18n.t('quotation.searchHint'),
+            onSearchChanged: () => setState(() {}),
+            options: _quotationOptions(i18n, items),
+            selected: _filter,
+            onSelected: (filter) => setState(() => _filter = filter),
+          );
+
+          if (visible.isEmpty) {
+            return ContentWidth(
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  toolbar,
+                  const SizedBox(height: 24),
+                  AppFilterEmpty(
+                    i18n: i18n,
+                    onClear: () => setState(() {
+                      _filter = _QuotationFilter.all;
+                      _search.clear();
+                    }),
+                  ),
+                ],
+              ),
+            );
+          }
+
           if (context.isDesktop) {
             return ContentWidth(
               child: ListView(
                 children: [
+                  toolbar,
+                  const SizedBox(height: 16),
                   Text(
                     i18n.t('quotation.selectBest'),
                     style: const TextStyle(color: AppColors.muted, height: 1.4),
@@ -121,7 +216,7 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final quotation in items)
+                        for (final quotation in visible)
                           SizedBox(
                             width: 320,
                             child: Padding(
@@ -146,10 +241,11 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemCount: visible.length + 1,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final quotation = items[index];
+              if (index == 0) return toolbar;
+              final quotation = visible[index - 1];
               return _QuotationCard(
                 quotation: quotation,
                 i18n: i18n,
@@ -164,6 +260,15 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
       ),
     );
   }
+}
+
+bool _matchesQuotation(String? status, _QuotationFilter filter) {
+  return switch (filter) {
+    _QuotationFilter.all => true,
+    _QuotationFilter.submitted => status == 'submitted',
+    _QuotationFilter.accepted => status == 'accepted',
+    _QuotationFilter.closed => status == 'rejected' || status == 'withdrawn',
+  };
 }
 
 class _QuotationCard extends StatelessWidget {
@@ -302,8 +407,42 @@ class QuotationDetailScreen extends ConsumerWidget {
         i18n: i18n,
         onRetry: () => ref.invalidate(quotationDetailProvider(quotationId)),
         builder: (quotation) {
+          final locale = i18n.locale.languageCode;
+          final status = quotation.status ?? '';
           return ContentWidth(
-            child: _QuotationCard(
+            child: ListView(
+              children: [
+                AppAppear(
+                  index: 0,
+                  child: EntitySummaryCard(
+                    title: quotation.provider?.displayName(locale) ?? quotation.reference ?? i18n.t('quotation.detail'),
+                    subtitle: quotation.reference,
+                    icon: Icons.request_quote_rounded,
+                    accent: AppColors.statusForeground(status).withValues(alpha: 0.85),
+                    badge: StatusBadge(status: status, label: i18n.status(status)),
+                    facts: [
+                      EntityFact(
+                        i18n.t('quotation.price'),
+                        formatAmount(quotation.totalPrice, currency: quotation.currency ?? 'OMR'),
+                        icon: Icons.payments_outlined,
+                      ),
+                      EntityFact(
+                        i18n.t('quotation.trucks'),
+                        '${quotation.truckCount ?? '—'}',
+                        icon: Icons.local_shipping_outlined,
+                      ),
+                      EntityFact(
+                        i18n.t('quotation.duration'),
+                        '${quotation.durationDays ?? '—'}',
+                        icon: Icons.schedule_outlined,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                AppAppear(
+                  index: 1,
+                  child: _QuotationCard(
               quotation: quotation,
               i18n: i18n,
               accepting: false,
@@ -335,6 +474,9 @@ class QuotationDetailScreen extends ConsumerWidget {
                 }
               },
               onOpen: () {},
+                  ),
+                ),
+              ],
             ),
           );
         },

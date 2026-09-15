@@ -7,13 +7,15 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/app_appear.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/async_body.dart';
+import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/page_scaffold.dart';
-import '../../../shared/widgets/status_badge.dart';
 import '../../../shared/models/pagination_meta.dart';
 import '../../shipments/data/shipment_model.dart';
 import '../../shipments/presentation/shipment_providers.dart';
+import '../../shipments/presentation/widgets/shipment_card.dart';
 import '../data/dashboard_model.dart';
 import 'home_providers.dart';
 
@@ -32,7 +34,7 @@ class HomeScreen extends ConsumerWidget {
       onRetry: () => ref.invalidate(dashboardProvider),
       builder: (summary) {
         return ContentWidth(
-          padding: EdgeInsets.fromLTRB(context.isDesktop ? 24 : 20, 12, context.isDesktop ? 24 : 20, 0),
+          padding: EdgeInsets.fromLTRB(context.isDesktop ? 24 : 20, 12, context.isDesktop ? 24 : 20, 28),
           child: RefreshIndicator(
             color: AppColors.navy,
             onRefresh: () async {
@@ -68,7 +70,11 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _QuickActions(i18n: i18n),
                 const SizedBox(height: 24),
-                _RecentSection(i18n: i18n, shipments: shipments),
+                _RecentSection(
+                  i18n: i18n,
+                  shipments: shipments,
+                  onRetry: () => ref.invalidate(shipmentsProvider),
+                ),
               ],
             ),
           ),
@@ -406,47 +412,66 @@ class _RecentSection extends StatelessWidget {
   const _RecentSection({
     required this.i18n,
     required this.shipments,
+    required this.onRetry,
   });
 
   final I18nBundle i18n;
   final AsyncValue<PagedResult<ShipmentRequest>> shipments;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
+    final columns = context.isMobile ? 1 : 2;
+    final limit = context.isMobile ? 4 : 6;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Expanded(child: _SectionLabel(label: i18n.t('home.recentShipments'))),
-            TextButton(
+            TextButton.icon(
               onPressed: () => context.go('/shipments'),
-              child: Text(i18n.t('common.viewAll')),
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: Text(i18n.t('common.viewAll')),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         shipments.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 28),
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.navy)),
+          loading: () => _RecentLoading(columns: columns),
+          error: (error, _) => Card(
+            child: ErrorState(i18n: i18n, error: error, onRetry: onRetry),
           ),
-          error: (error, _) => Text('$error', style: const TextStyle(color: AppColors.danger)),
           data: (page) {
-            final items = page.items.take(5).toList();
-            return Card(
-              clipBehavior: Clip.antiAlias,
-              child: items.isEmpty
-                  ? _RecentEmpty(i18n: i18n)
-                  : Column(
-                      children: [
-                        for (var index = 0; index < items.length; index++) ...[
-                          if (index > 0) const Divider(height: 1, indent: 16, endIndent: 16),
-                          _ShipmentRow(i18n: i18n, shipment: items[index]),
-                        ],
-                      ],
-                    ),
-            );
+            final items = page.items.take(limit).toList();
+            if (items.isEmpty) return _RecentEmpty(i18n: i18n);
+
+            final cards = [
+              for (var index = 0; index < items.length; index++)
+                AppAppear(
+                  index: index,
+                  child: ShipmentCard(
+                    i18n: i18n,
+                    shipment: items[index],
+                    compact: true,
+                  ),
+                ),
+            ];
+
+            if (columns == 1) {
+              return Column(
+                children: [
+                  for (var index = 0; index < cards.length; index++) ...[
+                    if (index > 0) const SizedBox(height: 10),
+                    cards[index],
+                  ],
+                ],
+              );
+            }
+
+            return _TwoColumnGrid(children: cards);
           },
         ),
       ],
@@ -461,33 +486,55 @@ class _RecentEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+    return Card(
+      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.mist,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.inventory_2_outlined, color: AppColors.navy),
+          const ColoredBox(
+            color: AppColors.accentFrom,
+            child: SizedBox(height: 3),
           ),
-          const SizedBox(height: 12),
-          Text(
-            i18n.t('home.noShipments'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            i18n.t('home.emptyHint'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                  height: 1.4,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.navySoft,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.inventory_2_outlined, color: AppColors.navy, size: 26),
+                  ),
                 ),
+                const SizedBox(height: 14),
+                Text(
+                  i18n.t('home.noShipments'),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  i18n.t('home.emptyHint'),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.muted,
+                        height: 1.45,
+                      ),
+                ),
+                const SizedBox(height: 18),
+                AppButton(
+                  label: i18n.t('home.newShipment'),
+                  icon: Icons.add_rounded,
+                  expanded: true,
+                  onPressed: () => context.push('/shipments/new'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -495,74 +542,73 @@ class _RecentEmpty extends StatelessWidget {
   }
 }
 
-class _ShipmentRow extends StatelessWidget {
-  const _ShipmentRow({
-    required this.i18n,
-    required this.shipment,
-  });
+class _RecentLoading extends StatelessWidget {
+  const _RecentLoading({required this.columns});
 
-  final I18nBundle i18n;
-  final ShipmentRequest shipment;
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final from = shipment.pickupCity ?? shipment.pickupAddress ?? '—';
-    final to = shipment.deliveryCity ?? shipment.deliveryAddress ?? '—';
+    final placeholders = List<Widget>.generate(columns == 1 ? 3 : 4, (_) => const _RecentSkeleton());
+    if (columns == 1) {
+      return Column(
+        children: [
+          for (var index = 0; index < placeholders.length; index++) ...[
+            if (index > 0) const SizedBox(height: 10),
+            placeholders[index],
+          ],
+        ],
+      );
+    }
+    return _TwoColumnGrid(children: placeholders);
+  }
+}
 
-    return InkWell(
-      onTap: () => context.push('/shipments/${shipment.id}'),
+class _RecentSkeleton extends StatelessWidget {
+  const _RecentSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _RouteMark(),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    shipment.reference ?? shipment.cargoType ?? '—',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.mist,
+                    borderRadius: BorderRadius.circular(13),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          from,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodySmall?.copyWith(color: AppColors.muted),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Icon(Icons.arrow_forward, size: 12, color: AppColors.navyMuted),
-                      ),
-                      Flexible(
-                        child: Text(
-                          to,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodySmall?.copyWith(color: AppColors.muted),
-                        ),
-                      ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      _SkeletonBar(width: 140, height: 12),
+                      SizedBox(height: 8),
+                      _SkeletonBar(width: 88, height: 10),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const _SkeletonBar(width: 64, height: 22, radius: 20),
+              ],
             ),
-            const SizedBox(width: 8),
-            StatusBadge(
-              status: shipment.status ?? '',
-              label: i18n.status(shipment.status),
+            const SizedBox(height: 14),
+            const _SkeletonBar(width: double.infinity, height: 12),
+            const SizedBox(height: 12),
+            const Wrap(
+              spacing: 8,
+              children: [
+                _SkeletonBar(width: 84, height: 26, radius: 20),
+                _SkeletonBar(width: 96, height: 26, radius: 20),
+              ],
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.navyMuted),
           ],
         ),
       ),
@@ -570,40 +616,25 @@ class _ShipmentRow extends StatelessWidget {
   }
 }
 
-class _RouteMark extends StatelessWidget {
-  const _RouteMark();
+class _SkeletonBar extends StatelessWidget {
+  const _SkeletonBar({
+    required this.width,
+    required this.height,
+    this.radius = 8,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 14,
-      height: 36,
-      child: Column(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.navy,
-              shape: BoxShape.circle,
-            ),
-          ),
-          Expanded(
-            child: Container(
-              width: 2,
-              color: AppColors.border,
-            ),
-          ),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: AppColors.accentFrom,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.onNeon, width: 1.2),
-            ),
-          ),
-        ],
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.mist,
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }

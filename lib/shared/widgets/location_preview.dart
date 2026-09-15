@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/i18n/i18n_controller.dart';
 import '../../core/maps/google_maps_links.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/bidi_text.dart';
 import '../../core/utils/formatters.dart';
 import 'app_glyph.dart';
 
@@ -31,8 +32,8 @@ class LocationPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final line = [
-      if ((address ?? '').trim().isNotEmpty) address!.trim(),
-      if ((city ?? '').trim().isNotEmpty) city!.trim(),
+      if ((address ?? '').trim().isNotEmpty) bidiIsolate(address!.trim()),
+      if ((city ?? '').trim().isNotEmpty) bidiIsolate(city!.trim()),
     ].join(', ');
 
     return Column(

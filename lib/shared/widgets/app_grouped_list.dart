@@ -56,16 +56,22 @@ class AppTableCard extends StatelessWidget {
     super.key,
     required this.child,
     this.onRefresh,
+    this.header,
   });
 
   final Widget child;
   final Future<void> Function()? onRefresh;
+  final Widget? header;
 
   @override
   Widget build(BuildContext context) {
     final body = ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
+        if (header != null) ...[
+          header!,
+          const SizedBox(height: 16),
+        ],
         Card(
           clipBehavior: Clip.antiAlias,
           child: Column(

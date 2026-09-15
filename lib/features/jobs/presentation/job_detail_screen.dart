@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/app_appear.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_glyph.dart';
 import '../../../shared/widgets/app_list_card.dart';
 import '../../../shared/widgets/app_progress.dart';
 import '../../../shared/widgets/app_route_line.dart';
@@ -13,8 +16,10 @@ import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../trips/presentation/widgets/trip_status.dart';
 import '../data/job_model.dart';
 import 'job_providers.dart';
+import 'widgets/job_card.dart';
 
 class JobDetailScreen extends ConsumerWidget {
   const JobDetailScreen({super.key, required this.jobId});
@@ -28,6 +33,7 @@ class JobDetailScreen extends ConsumerWidget {
 
     return PageScaffold(
       title: i18n.t('job.detail'),
+      showBack: true,
       body: AsyncBody<TransportJob>(
         value: value,
         i18n: i18n,
@@ -38,126 +44,144 @@ class JobDetailScreen extends ConsumerWidget {
         },
         builder: (job) {
           final locale = i18n.locale.languageCode;
-          final progress = ((job.progressPercent ?? 0) / 100).clamp(0.0, 1.0);
+          final status = job.status ?? '';
+          final cargo = job.shipment?.cargoType?.trim();
+          final reference = job.reference?.trim();
+          final title = (cargo != null && cargo.isNotEmpty)
+              ? cargo
+              : (reference != null && reference.isNotEmpty)
+                  ? reference
+                  : i18n.t('job.detail');
+          final from = job.shipment?.pickupCity ?? job.shipment?.pickupAddress;
+          final to = job.shipment?.deliveryCity ?? job.shipment?.deliveryAddress;
+
           return ContentWidth(
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                EntitySummaryCard(
-                  title: job.reference ?? i18n.t('job.detail'),
-                  subtitle: i18n.t('job.hint'),
-                  icon: Icons.assignment_turned_in_rounded,
-                  badge: StatusBadge(status: job.status ?? '', label: i18n.status(job.status)),
-                  facts: [
-                    EntityFact(
-                      i18n.t('common.provider'),
-                      job.provider?.displayName(locale) ?? '—',
-                    ),
-                    EntityFact(
-                      i18n.t('common.amount'),
-                      formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'),
-                    ),
-                    EntityFact(
-                      i18n.t('common.progress'),
-                      formatPercent(job.progressPercent),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SectionCard(
-                  title: i18n.t('job.progress'),
-                  icon: Icons.bolt_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppStatusStepper(
-                        steps: [
-                          AppStepItem(
-                            id: 'pending_dispatch',
-                            label: i18n.status('pending_dispatch'),
-                            icon: Icons.hourglass_top_rounded,
-                          ),
-                          AppStepItem(
-                            id: 'in_progress',
-                            label: i18n.status('in_progress'),
-                            icon: Icons.local_shipping_rounded,
-                          ),
-                          AppStepItem(
-                            id: 'completed',
-                            label: i18n.status('completed'),
-                            icon: Icons.verified_rounded,
-                          ),
-                        ],
-                        currentId: _jobStep(job.status),
-                        failed: job.status == 'cancelled',
+                AppAppear(
+                  index: 0,
+                  child: EntitySummaryCard(
+                    title: title,
+                    subtitle: cargo != null && cargo.isNotEmpty ? reference : i18n.t('job.hint'),
+                    icon: jobStatusIcon(status),
+                    tone: jobStatusTone(status),
+                    accent: AppColors.statusForeground(status).withValues(alpha: 0.85),
+                    badge: StatusBadge(status: status, label: i18n.status(status)),
+                    facts: [
+                      EntityFact(
+                        i18n.t('common.provider'),
+                        job.provider?.displayName(locale) ?? '—',
+                        icon: Icons.handshake_outlined,
                       ),
-                      const SizedBox(height: 18),
-                      AppProgressBar(
-                        value: progress,
-                        caption: i18n.t('job.deliveredOf', {
-                          'delivered': formatNumber(job.deliveredQuantity),
-                          'total': formatNumber(job.totalQuantity),
-                        }),
+                      EntityFact(
+                        i18n.t('common.amount'),
+                        formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'),
+                        icon: Icons.payments_outlined,
                       ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          AppMetricChip(
-                            icon: Icons.handshake_rounded,
-                            label: i18n.t('common.provider'),
-                            value: job.provider?.displayName(locale) ?? '—',
-                          ),
-                          AppMetricChip(
-                            icon: Icons.payments_rounded,
-                            label: i18n.t('common.amount'),
-                            value: formatAmount(job.totalPrice, currency: job.currency ?? 'OMR'),
-                          ),
-                          AppMetricChip(
-                            icon: Icons.tag_rounded,
-                            label: i18n.t('common.reference'),
-                            value: job.shipment?.reference ?? '—',
-                          ),
-                        ],
+                      EntityFact(
+                        i18n.t('job.trips'),
+                        i18n.t('job.tripsCount', {'count': '${job.trips.length}'}),
+                        icon: Icons.alt_route_outlined,
                       ),
                     ],
+                    footer: from != null || to != null
+                        ? AppRoutePanel(
+                            fromLabel: i18n.t('common.pickup'),
+                            toLabel: i18n.t('common.delivery'),
+                            from: from ?? '—',
+                            to: to ?? '—',
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  i18n.t('job.trips'),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                if (job.trips.isEmpty)
-                  Text(i18n.t('job.noTrips'), style: const TextStyle(color: AppColors.muted))
-                else
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        for (var index = 0; index < job.trips.length; index++) ...[
-                          if (index > 0) const Divider(height: 1, indent: 16, endIndent: 16),
-                          AppListCard(
-                            embedded: true,
-                            onTap: () => context.push('/trips/${job.trips[index].id}'),
-                            title: job.trips[index].reference ??
-                                i18n.t('trip.sequence', {'n': '${job.trips[index].sequence ?? ''}'}),
-                            subtitleWidget: AppRouteLine(
-                              compact: true,
-                              from: job.trips[index].pickupCity ?? job.trips[index].pickupAddress ?? '—',
-                              to: job.trips[index].deliveryCity ?? job.trips[index].deliveryAddress ?? '—',
-                            ),
-                            trailing: StatusBadge(
-                              status: job.trips[index].status ?? '',
-                              label: i18n.status(job.trips[index].status),
-                            ),
-                          ),
-                        ],
+                AppAppear(
+                  index: 1,
+                  child: SectionCard(
+                    title: i18n.t('job.progress'),
+                    icon: Icons.bolt_rounded,
+                    child: AppStatusStepper(
+                      steps: [
+                        AppStepItem(
+                          id: 'pending_dispatch',
+                          label: i18n.status('pending_dispatch'),
+                          icon: Icons.hourglass_top_rounded,
+                        ),
+                        AppStepItem(
+                          id: 'in_progress',
+                          label: i18n.status('in_progress'),
+                          icon: Icons.local_shipping_rounded,
+                        ),
+                        AppStepItem(
+                          id: 'completed',
+                          label: i18n.status('completed'),
+                          icon: Icons.verified_rounded,
+                        ),
                       ],
+                      currentId: _jobStep(job.status),
+                      failed: job.status == 'cancelled',
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                AppAppear(
+                  index: 2,
+                  child: SectionCard(
+                    title: i18n.t('job.trips'),
+                    icon: Icons.alt_route_rounded,
+                    child: job.trips.isEmpty
+                        ? Text(i18n.t('job.noTrips'), style: const TextStyle(color: AppColors.muted))
+                        : Column(
+                            children: [
+                              for (var index = 0; index < job.trips.length; index++) ...[
+                                if (index > 0) const Divider(height: 1, indent: 4, endIndent: 4),
+                                AppListCard(
+                                  embedded: true,
+                                  onTap: () => context.push('/trips/${job.trips[index].id}'),
+                                  leading: AppGlyph(
+                                    icon: tripStatusIcon(job.trips[index].status),
+                                    size: 40,
+                                    iconSize: 20,
+                                    tone: tripStatusTone(job.trips[index].status),
+                                  ),
+                                  title: job.trips[index].reference ??
+                                      i18n.t('trip.sequence', {'n': '${job.trips[index].sequence ?? ''}'}),
+                                  subtitleWidget: AppRouteLine(
+                                    from: job.trips[index].pickupCity ??
+                                        job.trips[index].pickupAddress ??
+                                        '—',
+                                    to: job.trips[index].deliveryCity ??
+                                        job.trips[index].deliveryAddress ??
+                                        '—',
+                                    fromLabel: i18n.t('common.pickup'),
+                                    toLabel: i18n.t('common.delivery'),
+                                  ),
+                                  trailing: StatusBadge(
+                                    status: job.trips[index].status ?? '',
+                                    label: i18n.status(job.trips[index].status),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                  ),
+                ),
+                if (job.shipment != null) ...[
+                  const SizedBox(height: 16),
+                  AppAppear(
+                    index: 3,
+                    child: SectionCard(
+                      title: i18n.t('common.actions'),
+                      icon: Icons.touch_app_rounded,
+                      child: AppButton(
+                        label: i18n.t('job.viewShipment'),
+                        icon: Icons.inventory_2_outlined,
+                        onPressed: () => context.push('/shipments/${job.shipment!.id}'),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           );

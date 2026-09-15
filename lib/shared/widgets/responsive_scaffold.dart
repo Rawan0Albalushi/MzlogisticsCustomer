@@ -117,7 +117,11 @@ class ResponsiveScaffold extends StatelessWidget {
           ? i18n.t('home.greeting', {'name': userName})
           : destinations[selected].location == '/profile'
               ? i18n.t('profile.headerSubtitle')
-              : null,
+              : destinations[selected].location == '/shipments'
+                  ? i18n.t('shipment.headerSubtitle')
+                  : destinations[selected].location == '/jobs'
+                      ? i18n.t('job.headerSubtitle')
+                      : null,
       showBack: false,
       actions: [
         _NotificationButton(i18n: i18n, unreadCount: unreadCount),

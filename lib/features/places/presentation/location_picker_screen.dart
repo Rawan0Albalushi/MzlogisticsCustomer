@@ -9,6 +9,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/bidi_text.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/geo_location.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -313,8 +314,10 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                   final item = _suggestions[index];
                   return ListTile(
                     leading: const Icon(Icons.place_outlined, color: AppColors.amber),
-                    title: Text(item.mainText ?? item.description),
-                    subtitle: item.secondaryText == null ? null : Text(item.secondaryText!),
+                    title: Text(bidiIsolate(item.mainText ?? item.description)),
+                    subtitle: item.secondaryText == null
+                        ? null
+                        : Text(bidiIsolate(item.secondaryText!)),
                     onTap: _resolving ? null : () => _selectSuggestion(item),
                   );
                 },

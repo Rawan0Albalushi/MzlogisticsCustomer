@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/i18n/i18n_controller.dart';
 import '../../core/maps/google_maps_links.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/bidi_text.dart';
 import '../../core/utils/formatters.dart';
 import '../../features/places/presentation/location_picker_screen.dart';
 import '../models/geo_location.dart';
@@ -74,10 +75,15 @@ class LocationPickerField extends StatelessWidget {
                   style: const TextStyle(color: AppColors.muted),
                 )
               else ...[
-                Text(selected.address, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  bidiIsolate(selected.address),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  selected.areaLabel.isNotEmpty ? selected.areaLabel : selected.city,
+                  bidiIsolate(
+                    selected.areaLabel.isNotEmpty ? selected.areaLabel : selected.city,
+                  ),
                   style: const TextStyle(color: AppColors.muted),
                 ),
                 const SizedBox(height: 6),

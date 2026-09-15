@@ -25,6 +25,7 @@ import '../../features/shipments/presentation/shipments_list_screen.dart';
 import '../../features/trips/presentation/pod_screen.dart';
 import '../../features/trips/presentation/trip_detail_screen.dart';
 import '../../shared/widgets/responsive_scaffold.dart';
+import '../constants/app_constants.dart';
 import '../i18n/i18n_controller.dart';
 
 class RouterRefresh extends ChangeNotifier {
@@ -131,6 +132,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/trips/:id/tracking',
+        redirect: (context, state) {
+          if (!AppConstants.liveTrackingEnabled) {
+            return '/trips/${state.pathParameters['id']}';
+          }
+          return null;
+        },
         builder: (context, state) => TripTrackingScreen(
           tripId: int.parse(state.pathParameters['id']!),
         ),

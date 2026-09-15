@@ -18,7 +18,7 @@ class AppConstants {
     // Physical device on the same Wi-Fi. Override with:
     // flutter run --dart-define=DEV_LAN_HOST=10.0.2.2  (Android emulator)
     // USB debugging: adb reverse tcp:8000 tcp:8000 and DEV_LAN_HOST=127.0.0.1
-    return '192.168.100.43';
+    return '192.168.100.197';
   }
 
   static String get apiBaseUrl {
@@ -60,4 +60,7 @@ class AppConstants {
   static const double wideBreakpoint = 1440;
 
   static const List<String> supportedLocales = ['en', 'ar'];
+
+  /// Temporarily hidden until live tracking is ready to ship.
+  static const bool liveTrackingEnabled = false;
 }

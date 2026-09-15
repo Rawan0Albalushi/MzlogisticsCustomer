@@ -4,10 +4,11 @@ import '../../core/theme/app_colors.dart';
 import 'app_glyph.dart';
 
 class EntityFact {
-  const EntityFact(this.label, this.value);
+  const EntityFact(this.label, this.value, {this.icon});
 
   final String label;
   final String value;
+  final IconData? icon;
 }
 
 class EntitySummaryCard extends StatelessWidget {
@@ -16,6 +17,8 @@ class EntitySummaryCard extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.icon = Icons.inventory_2_rounded,
+    this.tone = AppGlyphTone.navy,
+    this.accent,
     this.badge,
     this.facts = const [],
     this.footer,
@@ -24,6 +27,8 @@ class EntitySummaryCard extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData icon;
+  final AppGlyphTone tone;
+  final Color? accent;
   final Widget? badge;
   final List<EntityFact> facts;
   final Widget? footer;
@@ -36,9 +41,9 @@ class EntitySummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const ColoredBox(
-            color: AppColors.accentFrom,
-            child: SizedBox(height: 3),
+          ColoredBox(
+            color: accent ?? AppColors.accentFrom,
+            child: const SizedBox(height: 3),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -48,7 +53,7 @@ class EntitySummaryCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppGlyph(icon: icon, size: 48, iconSize: 24),
+                    AppGlyph(icon: icon, size: 48, iconSize: 24, tone: tone),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -86,17 +91,28 @@ class EntitySummaryCard extends StatelessWidget {
                       for (final fact in facts)
                         ConstrainedBox(
                           constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
-                          child: Column(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                fact.label,
-                                style: text.labelSmall?.copyWith(color: AppColors.muted),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                fact.value,
-                                style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                              if (fact.icon != null) ...[
+                                Icon(fact.icon, size: 16, color: AppColors.navy),
+                                const SizedBox(width: 8),
+                              ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      fact.label,
+                                      style: text.labelSmall?.copyWith(color: AppColors.muted),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      fact.value,
+                                      style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),

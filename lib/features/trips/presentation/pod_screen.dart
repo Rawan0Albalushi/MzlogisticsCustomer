@@ -6,6 +6,7 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/app_appear.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/info_row.dart';
@@ -42,8 +43,11 @@ class PodScreen extends ConsumerWidget {
           return ContentWidth(
             child: ListView(
               children: [
-                SectionCard(
+                AppAppear(
+                  index: 0,
+                  child: SectionCard(
                   title: i18n.t('pod.title'),
+                  icon: Icons.verified_rounded,
                   trailing: StatusBadge(
                     status: pod.otpVerified ? 'completed' : 'pending',
                     label: pod.otpVerified ? i18n.t('pod.otpVerified') : i18n.t('pod.otpPending'),
@@ -52,14 +56,15 @@ class PodScreen extends ConsumerWidget {
                     spacing: 24,
                     runSpacing: 12,
                     children: [
-                      InfoRow(label: i18n.t('pod.receiver'), value: pod.receiverName ?? '—'),
-                      InfoRow(label: i18n.t('pod.receivedQty'), value: formatNumber(pod.receivedQuantity)),
-                      InfoRow(label: i18n.t('pod.otp'), value: pod.otpVerified ? i18n.t('common.verified') : i18n.t('common.unverified')),
-                      InfoRow(label: i18n.t('pod.capturedAt'), value: formatDateTime(pod.capturedAt, locale: locale)),
+                      InfoRow(label: i18n.t('pod.receiver'), value: pod.receiverName ?? '—', icon: Icons.person_outline),
+                      InfoRow(label: i18n.t('pod.receivedQty'), value: formatNumber(pod.receivedQuantity), icon: Icons.inventory_2_outlined),
+                      InfoRow(label: i18n.t('pod.otp'), value: pod.otpVerified ? i18n.t('common.verified') : i18n.t('common.unverified'), icon: Icons.lock_outline),
+                      InfoRow(label: i18n.t('pod.capturedAt'), value: formatDateTime(pod.capturedAt, locale: locale), icon: Icons.schedule_outlined),
                       if (pod.notes != null)
-                        InfoRow(label: i18n.t('common.notes'), value: pod.notes!, wide: true),
+                        InfoRow(label: i18n.t('common.notes'), value: pod.notes!, wide: true, icon: Icons.sticky_note_2_outlined),
                     ],
                   ),
+                ),
                 ),
                 const SizedBox(height: 16),
                 Text(

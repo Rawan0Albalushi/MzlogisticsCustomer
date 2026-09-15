@@ -38,6 +38,7 @@ class AppListCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (leading != null) ...[
               leading!,
@@ -54,7 +55,7 @@ class AppListCard extends StatelessWidget {
                     style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   if (subtitleWidget != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     subtitleWidget!,
                   ] else if (subtitle != null && subtitle!.isNotEmpty) ...[
                     const SizedBox(height: 4),

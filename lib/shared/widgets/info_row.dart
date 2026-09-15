@@ -9,11 +9,13 @@ class InfoRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.wide = false,
+    this.icon,
   });
 
   final String label;
   final String value;
   final bool wide;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +23,16 @@ class InfoRow extends StatelessWidget {
     final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: text.labelMedium?.copyWith(color: AppColors.muted)),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 15, color: AppColors.navy),
+              const SizedBox(width: 6),
+            ],
+            Text(label, style: text.labelMedium?.copyWith(color: AppColors.muted)),
+          ],
+        ),
         const SizedBox(height: 4),
         Text(value, style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
       ],
