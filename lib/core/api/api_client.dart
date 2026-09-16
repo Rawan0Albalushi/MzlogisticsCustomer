@@ -76,6 +76,25 @@ class ApiClient {
     return _send(() => _dio.patch<dynamic>(path, data: data));
   }
 
+  Future<Uint8List> getBytes(String path) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: const {'Accept': '*/*'},
+        ),
+      );
+      final data = response.data;
+      if (data == null || data.isEmpty) {
+        throw const ApiException(message: 'empty-media');
+      }
+      return Uint8List.fromList(data);
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
   Future<ApiEnvelope> _send(Future<Response<dynamic>> Function() request) async {
     try {
       final response = await request();

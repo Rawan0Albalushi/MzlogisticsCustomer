@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_appear.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/app_progress.dart';
 import '../../../shared/widgets/app_route_line.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/entity_summary_card.dart';
@@ -17,8 +17,10 @@ import '../../../shared/widgets/location_preview.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../tracking/presentation/tracking_panel.dart';
+import '../data/customer_trip_progress.dart';
 import '../data/trip_model.dart';
 import 'trip_providers.dart';
+import 'widgets/trip_progress.dart';
 import 'widgets/trip_status.dart';
 
 class TripDetailScreen extends ConsumerWidget {
@@ -56,8 +58,13 @@ class TripDetailScreen extends ConsumerWidget {
                     subtitle: trip.jobReference,
                     icon: tripStatusIcon(status),
                     tone: tripStatusTone(status),
-                    accent: AppColors.statusForeground(status).withValues(alpha: 0.85),
-                    badge: StatusBadge(status: status, label: i18n.status(status)),
+                    accent: AppColors.statusForeground(
+                      CustomerTripProgress.stageOf(status),
+                    ).withValues(alpha: 0.85),
+                    badge: StatusBadge(
+                      status: CustomerTripProgress.stageOf(status),
+                      label: customerTripStageLabel(i18n, status),
+                    ),
                     facts: [
                       EntityFact(
                         i18n.t('trip.driver'),
@@ -83,27 +90,59 @@ class TripDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                AppAppear(
-                  index: 1,
-                  child: SectionCard(
-                    title: i18n.t('progress.stage'),
-                    icon: Icons.alt_route_rounded,
-                    child: AppStatusStepper(
-                      steps: [
-                        AppStepItem(id: 'assigned', label: i18n.status('assigned'), icon: Icons.person_pin_circle_rounded),
-                        AppStepItem(id: 'loaded', label: i18n.status('loaded'), icon: Icons.inventory_2_rounded),
-                        AppStepItem(id: 'in_transit', label: i18n.status('in_transit'), icon: Icons.near_me_rounded),
-                        AppStepItem(id: 'delivered', label: i18n.status('delivered'), icon: Icons.flag_rounded),
-                      ],
-                      currentId: _tripStep(trip.status),
-                      failed: trip.status == 'cancelled',
+                if (trip.otpCode != null && trip.otpCode!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  AppAppear(
+                    index: 1,
+                    child: SectionCard(
+                      title: i18n.t('trip.otp'),
+                      icon: Icons.pin_outlined,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SelectableText(
+                            trip.otpCode!,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 4,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            i18n.t('trip.otpHint'),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.muted,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          AppButton(
+                            label: i18n.t('trip.otpCopy'),
+                            icon: Icons.copy_outlined,
+                            variant: AppButtonVariant.secondary,
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: trip.otpCode!));
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(i18n.t('trip.otpCopied'))),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 16),
                 AppAppear(
                   index: 2,
+                  child: TripProgressCard(i18n: i18n, trip: trip),
+                ),
+                const SizedBox(height: 16),
+                AppAppear(
+                  index: 3,
                   child: SectionCard(
                     title: i18n.t('trip.crew'),
                     icon: Icons.badge_outlined,
@@ -132,7 +171,7 @@ class TripDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 AppAppear(
-                  index: 3,
+                  index: 4,
                   child: SectionCard(
                     title: i18n.t('trip.quantities'),
                     icon: Icons.inventory_2_outlined,
@@ -156,7 +195,7 @@ class TripDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 AppAppear(
-                  index: 4,
+                  index: 5,
                   child: SectionCard(
                     title: i18n.t('shipment.route'),
                     icon: Icons.route_rounded,
@@ -187,71 +226,10 @@ class TripDetailScreen extends ConsumerWidget {
                 if (AppConstants.liveTrackingEnabled) ...[
                   const SizedBox(height: 12),
                   AppAppear(
-                    index: 5,
+                    index: 6,
                     child: TrackingPanel(trip: trip, i18n: i18n),
                   ),
                 ],
-                const SizedBox(height: 12),
-                AppAppear(
-                  index: 6,
-                  child: SectionCard(
-                    title: i18n.t('trip.timeline'),
-                    icon: Icons.history_rounded,
-                    child: AppTimeline(
-                      events: [
-                        AppTimelineEvent(
-                          label: i18n.t('trip.assignedAt'),
-                          value: formatDateTime(trip.assignedAt, locale: locale),
-                          icon: Icons.assignment_ind_rounded,
-                          done: trip.assignedAt != null,
-                          current: trip.status == 'assigned' || trip.status == 'unassigned',
-                        ),
-                        AppTimelineEvent(
-                          label: i18n.t('trip.pickupAt'),
-                          value: formatDateTime(trip.arrivedPickupAt, locale: locale),
-                          icon: Icons.trip_origin_rounded,
-                          done: trip.arrivedPickupAt != null,
-                          current: trip.status == 'arrived_at_pickup',
-                        ),
-                        AppTimelineEvent(
-                          label: i18n.t('trip.loadedAt'),
-                          value: formatDateTime(trip.loadedAt, locale: locale),
-                          icon: Icons.inventory_2_rounded,
-                          done: trip.loadedAt != null,
-                          current: trip.status == 'loaded',
-                        ),
-                        AppTimelineEvent(
-                          label: i18n.t('trip.transitAt'),
-                          value: formatDateTime(trip.inTransitAt, locale: locale),
-                          icon: Icons.near_me_rounded,
-                          done: trip.inTransitAt != null,
-                          current: trip.status == 'in_transit',
-                        ),
-                        AppTimelineEvent(
-                          label: i18n.t('trip.arrivedAt'),
-                          value: formatDateTime(trip.arrivedAt, locale: locale),
-                          icon: Icons.place_rounded,
-                          done: trip.arrivedAt != null,
-                          current: trip.status == 'arrived',
-                        ),
-                        AppTimelineEvent(
-                          label: i18n.t('trip.deliveredAt'),
-                          value: formatDateTime(trip.deliveredAt, locale: locale),
-                          icon: Icons.flag_rounded,
-                          done: trip.deliveredAt != null,
-                          current: trip.status == 'delivered',
-                        ),
-                        AppTimelineEvent(
-                          label: i18n.t('trip.completedAt'),
-                          value: formatDateTime(trip.completedAt, locale: locale),
-                          icon: Icons.verified_rounded,
-                          done: trip.completedAt != null,
-                          current: trip.status == 'completed',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 16),
                 AppAppear(
                   index: 7,
@@ -292,15 +270,6 @@ class TripDetailScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-String _tripStep(String? status) {
-  return switch (status) {
-    'loaded' => 'loaded',
-    'in_transit' || 'arrived' => 'in_transit',
-    'delivered' || 'completed' => 'delivered',
-    _ => 'assigned',
-  };
 }
 
 class TripTrackingScreen extends ConsumerWidget {

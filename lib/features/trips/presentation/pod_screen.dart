@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_appear.dart';
 import '../../../shared/widgets/async_body.dart';
+import '../../../shared/widgets/authenticated_image.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/info_row.dart';
 import '../../../shared/widgets/page_scaffold.dart';
@@ -79,21 +79,14 @@ class PodScreen extends ConsumerWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final path in pod.photoPaths)
+                      for (final entry in pod.photoPaths.indexed)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(AppTheme.radius),
-                          child: Image.network(
-                            mediaUrl(path, AppConstants.storageBaseUrl),
+                          child: AuthenticatedImage(
+                            path: '/trips/${trip.id}/pod/photos/${entry.$1}',
                             width: 160,
                             height: 120,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              width: 160,
-                              height: 120,
-                              color: AppColors.surface,
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.broken_image_outlined, color: AppColors.muted),
-                            ),
                           ),
                         ),
                     ],
@@ -105,10 +98,10 @@ class PodScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
-                  Image.network(
-                    mediaUrl(pod.signaturePath, AppConstants.storageBaseUrl),
+                  AuthenticatedImage(
+                    path: '/trips/${trip.id}/pod/signature',
                     height: 120,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    fit: BoxFit.contain,
                   ),
                 ],
               ],

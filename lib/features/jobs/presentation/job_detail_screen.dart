@@ -18,6 +18,7 @@ import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../payments/presentation/widgets/payment_terms_readout.dart';
 import '../../invoices/presentation/invoice_payment_flow.dart';
+import '../../trips/data/customer_trip_progress.dart';
 import '../../trips/presentation/widgets/trip_status.dart';
 import '../data/job_model.dart';
 import 'job_providers.dart';
@@ -166,8 +167,13 @@ class JobDetailScreen extends ConsumerWidget {
                                     toLabel: i18n.t('common.delivery'),
                                   ),
                                   trailing: StatusBadge(
-                                    status: job.trips[index].status ?? '',
-                                    label: i18n.status(job.trips[index].status),
+                                    status: CustomerTripProgress.stageOf(
+                                      job.trips[index].status,
+                                    ),
+                                    label: customerTripStageLabel(
+                                      i18n,
+                                      job.trips[index].status,
+                                    ),
                                   ),
                                 ),
                               ],

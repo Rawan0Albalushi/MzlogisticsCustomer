@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 int? asInt(dynamic value) {
   if (value == null) return null;
   if (value is int) return value;
@@ -40,5 +42,27 @@ Map<String, dynamic> asMap(dynamic value) {
 
 List<dynamic> asList(dynamic value) {
   if (value is List) return value;
+  return const [];
+}
+
+List<String> asStringList(dynamic value) {
+  if (value is List) {
+    return value
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty && item != 'null')
+        .toList();
+  }
+  if (value is Map) {
+    return asStringList(value.values.toList());
+  }
+  if (value is String && value.trim().isNotEmpty) {
+    final raw = value.trim();
+    if (raw.startsWith('[') || raw.startsWith('{')) {
+      try {
+        return asStringList(jsonDecode(raw));
+      } catch (_) {}
+    }
+    return [raw];
+  }
   return const [];
 }

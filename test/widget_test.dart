@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mz_logistics_customer_app/core/i18n/i18n_controller.dart';
 import 'package:mz_logistics_customer_app/core/theme/app_colors.dart';
 import 'package:mz_logistics_customer_app/core/utils/formatters.dart';
+import 'package:mz_logistics_customer_app/core/utils/json_utils.dart';
 import 'package:mz_logistics_customer_app/features/shipments/data/shipment_model.dart';
 import 'package:mz_logistics_customer_app/features/shipments/presentation/widgets/shipment_card.dart';
 
@@ -88,6 +89,16 @@ void main() {
     await tester.tap(find.byType(InkWell).first);
     await tester.pumpAndSettle();
     expect(find.text('shipment-detail'), findsOneWidget);
+  });
+
+  test('photo path lists decode json strings and map values', () {
+    expect(asStringList(['pods/1/a.jpg', 'pods/1/b.jpg']), [
+      'pods/1/a.jpg',
+      'pods/1/b.jpg',
+    ]);
+    expect(asStringList('["pods/1/a.jpg"]'), ['pods/1/a.jpg']);
+    expect(asStringList({'0': 'pods/1/a.jpg'}), ['pods/1/a.jpg']);
+    expect(asStringList(null), isEmpty);
   });
 
   test('published shipments can compare quotations until awarded', () {

@@ -54,7 +54,7 @@ class ProofOfDelivery {
       id: asInt(json['id']) ?? 0,
       receiverName: asString(json['receiver_name']),
       otpVerified: asBool(json['otp_verified']),
-      photoPaths: asList(json['photo_paths']).map((item) => item.toString()).toList(),
+      photoPaths: asStringList(json['photo_paths']),
       receivedQuantity: asDouble(json['received_quantity']),
       signaturePath: asString(json['signature_path']),
       notes: asString(json['notes']),
@@ -84,6 +84,8 @@ class Trip {
     this.currentLat,
     this.currentLng,
     this.etaAt,
+    this.otpCode,
+    this.otpRequired = false,
     this.assignedAt,
     this.arrivedPickupAt,
     this.loadedAt,
@@ -116,6 +118,8 @@ class Trip {
   final double? currentLat;
   final double? currentLng;
   final DateTime? etaAt;
+  final String? otpCode;
+  final bool otpRequired;
   final DateTime? assignedAt;
   final DateTime? arrivedPickupAt;
   final DateTime? loadedAt;
@@ -153,6 +157,8 @@ class Trip {
       currentLat: asDouble(json['current_lat']),
       currentLng: asDouble(json['current_lng']),
       etaAt: asDateTime(json['eta_at']),
+      otpCode: asString(json['otp_code']),
+      otpRequired: asBool(json['otp_required']),
       assignedAt: asDateTime(json['assigned_at']),
       arrivedPickupAt: asDateTime(json['arrived_pickup_at']),
       loadedAt: asDateTime(json['loaded_at']),
