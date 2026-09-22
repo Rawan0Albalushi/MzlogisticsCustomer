@@ -15,7 +15,7 @@ class BrandMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final letters = Text(
-      'MZ',
+      'MX',
       style: TextStyle(
         color: light ? AppColors.accentFrom : AppColors.white,
         fontWeight: FontWeight.w800,

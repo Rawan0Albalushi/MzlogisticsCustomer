@@ -1,5 +1,5 @@
 {
-  "app.name": "MZ Logistics",
+  "app.name": "MoveX",
   "app.tagline": "Freight that stays on schedule",
   "app.customer": "Customer",
 
@@ -52,7 +52,7 @@
   "common.arabic": "Arabic",
   "common.arabicShort": "AR",
   "common.logout": "Sign out",
-  "common.logoutConfirm": "Sign out of your MZ Logistics account?",
+  "common.logoutConfirm": "Sign out of your MoveX account?",
   "common.networkError": "Unable to reach the server. Check your connection and try again.",
   "common.unauthorized": "Your session expired. Please sign in again.",
   "common.validationError": "Please review the highlighted fields.",
@@ -141,7 +141,7 @@
   "auth.individual": "Individual",
   "auth.company": "Company",
   "auth.companyName": "Company name",
-  "auth.noAccount": "New to MZ Logistics?",
+  "auth.noAccount": "New to MoveX?",
   "auth.hasAccount": "Already have an account?",
   "auth.useDemo": "Use demo account",
   "auth.demoHint": "Demo: customer@gulfmaterials.om",

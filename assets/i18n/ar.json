@@ -1,5 +1,5 @@
 {
-  "app.name": "إم زد للخدمات اللوجستية",
+  "app.name": "MoveX",
   "app.tagline": "شحن يلتزم بالجدول",
   "app.customer": "العميل",
 
@@ -52,7 +52,7 @@
   "common.arabic": "العربية",
   "common.arabicShort": "AR",
   "common.logout": "تسجيل الخروج",
-  "common.logoutConfirm": "هل تريد تسجيل الخروج من حساب إم زد؟",
+  "common.logoutConfirm": "هل تريد تسجيل الخروج من حساب MoveX؟",
   "common.networkError": "تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.",
   "common.unauthorized": "انتهت الجلسة. سجّل الدخول مرة أخرى.",
   "common.validationError": "راجع الحقول المحددة.",
@@ -141,7 +141,7 @@
   "auth.company": "شركة",
   "auth.companyName": "اسم الشركة",
   "auth.fullName": "الاسم الكامل",
-  "auth.noAccount": "جديد على إم زد؟",
+  "auth.noAccount": "جديد على MoveX؟",
   "auth.hasAccount": "لديك حساب بالفعل؟",
   "auth.useDemo": "استخدام حساب تجريبي",
   "auth.demoHint": "تجريبي: customer@gulfmaterials.om",

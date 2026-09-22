@@ -1,11 +1,11 @@
 {
-  "name": "MZ Logistics",
-  "short_name": "MZ Logistics",
+  "name": "MoveX",
+  "short_name": "MoveX",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0A246B",
   "theme_color": "#155EEF",
-  "description": "Customer platform for MZ Logistics freight operations.",
+  "description": "Customer platform for MoveX freight operations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
