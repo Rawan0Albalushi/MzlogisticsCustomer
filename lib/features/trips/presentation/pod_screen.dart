@@ -27,6 +27,7 @@ class PodScreen extends ConsumerWidget {
 
     return PageScaffold(
       title: i18n.t('pod.title'),
+      showBack: true,
       body: AsyncBody<Trip>(
         value: value,
         i18n: i18n,

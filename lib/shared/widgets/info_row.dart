@@ -25,12 +25,21 @@ class InfoRow extends StatelessWidget {
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 15, color: AppColors.navy),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Icon(icon, size: 15, color: AppColors.navy),
+              ),
               const SizedBox(width: 6),
             ],
-            Text(label, style: text.labelMedium?.copyWith(color: AppColors.muted)),
+            Flexible(
+              child: Text(
+                label,
+                style: text.labelMedium?.copyWith(color: AppColors.muted),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 4),

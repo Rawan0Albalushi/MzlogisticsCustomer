@@ -14,6 +14,7 @@ import '../../../shared/widgets/page_scaffold.dart';
 import '../../payments/presentation/payment_contract_providers.dart';
 import '../../payments/presentation/widgets/payment_terms_fields.dart';
 import '../data/quantity_units.dart';
+import 'widgets/shipment_create_stepper.dart';
 import '../data/shipment_model.dart';
 import '../data/shipment_repository.dart';
 import 'shipment_providers.dart';
@@ -22,7 +23,8 @@ class CreateShipmentScreen extends ConsumerStatefulWidget {
   const CreateShipmentScreen({super.key});
 
   @override
-  ConsumerState<CreateShipmentScreen> createState() => _CreateShipmentScreenState();
+  ConsumerState<CreateShipmentScreen> createState() =>
+      _CreateShipmentScreenState();
 }
 
 class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
@@ -40,14 +42,60 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   bool _publish = true;
   bool _submitting = false;
   int _step = 0;
+  int _stepDirection = 1;
   String? _error;
   String _billingTrigger = 'on_delivery';
   String _billingUnit = 'job';
   int _dueDays = 0;
   bool _paymentPrefillDone = false;
+  final List<GlobalKey> _stageKeys = List.generate(3, (_) => GlobalKey());
+
+  @override
+  void initState() {
+    super.initState();
+    _cargoType.addListener(_refreshDraft);
+    _weight.addListener(_refreshDraft);
+    _quantity.addListener(_refreshDraft);
+  }
+
+  void _refreshDraft() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _cargoReady {
+    if (_cargoType.text.trim().isEmpty) return false;
+    if ((double.tryParse(_weight.text) ?? 0) <= 0) return false;
+    if (!QuantityUnits.isTons(_quantityUnit) &&
+        (double.tryParse(_quantity.text) ?? 0) <= 0) {
+      return false;
+    }
+    return true;
+  }
+
+  bool get _routeReady {
+    final pickup = _pickup;
+    final delivery = _delivery;
+    if (pickup == null || pickup.city.isEmpty || !pickup.hasCoordinates) {
+      return false;
+    }
+    if (delivery == null || delivery.city.isEmpty || !delivery.hasCoordinates) {
+      return false;
+    }
+    return true;
+  }
+
+  int get _desktopStage {
+    if (!_cargoReady) return 0;
+    if (!_routeReady) return 1;
+    if (_requiredDate == null) return 2;
+    return 3;
+  }
 
   @override
   void dispose() {
+    _cargoType.removeListener(_refreshDraft);
+    _weight.removeListener(_refreshDraft);
+    _quantity.removeListener(_refreshDraft);
     _cargoType.dispose();
     _cargoDescription.dispose();
     _weight.dispose();
@@ -67,7 +115,8 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
         _error = i18n.t('shipment.weightRequired');
         return false;
       }
-      if (!QuantityUnits.isTons(_quantityUnit) && (double.tryParse(_quantity.text) ?? 0) <= 0) {
+      if (!QuantityUnits.isTons(_quantityUnit) &&
+          (double.tryParse(_quantity.text) ?? 0) <= 0) {
         _error = i18n.t('shipment.quantityRequired');
         return false;
       }
@@ -122,7 +171,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
       _publish = publish;
     });
     try {
-      final created = await ref.read(shipmentRepositoryProvider).create(
+      final created = await ref
+          .read(shipmentRepositoryProvider)
+          .create(
             CreateShipmentPayload(
               cargoType: _cargoType.text.trim(),
               cargoDescription: _cargoDescription.text.trim(),
@@ -150,15 +201,16 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           );
       ref.invalidate(shipmentsProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(i18n.t('shipment.created'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(i18n.t('shipment.created'))));
       context.go('/shipments/${created.id}');
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _error = error is ApiException
-            ? (error.message == 'network' ? i18n.t('common.networkError') : error.message)
+            ? (error.message == 'network'
+                  ? i18n.t('common.networkError')
+                  : error.message)
             : error.toString();
       });
     } finally {
@@ -186,52 +238,139 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
       });
     });
     final steps = [
-      i18n.t('shipment.stepCargo'),
-      i18n.t('shipment.stepRoute'),
-      i18n.t('shipment.stepSchedule'),
+      ShipmentCreateStep(
+        label: i18n.t('shipment.stepCargo'),
+        icon: Icons.inventory_2_outlined,
+      ),
+      ShipmentCreateStep(
+        label: i18n.t('shipment.stepRoute'),
+        icon: Icons.route_rounded,
+      ),
+      ShipmentCreateStep(
+        label: i18n.t('shipment.stepSchedule'),
+        icon: Icons.event_outlined,
+      ),
     ];
+    final hints = [
+      i18n.t('shipment.stepCargoHint'),
+      i18n.t('shipment.stepRouteHint'),
+      i18n.t('shipment.stepScheduleHint'),
+    ];
+    final stage = desktop ? _desktopStage : _step;
 
     return PageScaffold(
       title: i18n.t('shipment.create'),
+      showBack: true,
       body: ContentWidth(
         maxWidth: 880,
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              if (!desktop)
-                _NativeStepper(steps: steps, current: _step),
+              ShipmentCreateStepper(
+                steps: steps,
+                current: stage,
+                progressLabel: i18n.t('shipment.stepProgress', {
+                  'current': '${(stage.clamp(0, steps.length - 1)) + 1}',
+                  'total': '${steps.length}',
+                }),
+                canSelect: desktop ? null : (index) => index <= _step,
+                onSelect: (index) =>
+                    desktop ? _revealStage(index) : _selectStep(index),
+              ),
               if (!desktop) ...[
+                const SizedBox(height: 18),
+                AnimatedSwitcher(
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 380),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (currentChild, previousChildren) {
+                    return Stack(
+                      alignment: Alignment.topCenter,
+                      children: [
+                        ...previousChildren,
+                        ?currentChild,
+                      ],
+                    );
+                  },
+                  transitionBuilder: (child, animation) {
+                    final rtl = Directionality.of(context) == TextDirection.rtl;
+                    final forward = rtl ? -_stepDirection : _stepDirection;
+                    final incoming =
+                        animation.status == AnimationStatus.forward ||
+                        animation.status == AnimationStatus.completed;
+                    final travel = (incoming ? forward : -forward) * 0.16;
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: Offset(travel, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(_step),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          steps[_step].label,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          hints[_step],
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.muted, height: 1.4),
+                        ),
+                        const SizedBox(height: 16),
+                        _stageCard(
+                          index: _step,
+                          title: steps[_step].label,
+                          hint: hints[_step],
+                          icon: steps[_step].icon,
+                          showHeading: false,
+                          child: _step == 0
+                              ? _cargoFields(i18n)
+                              : _step == 1
+                              ? _routeFields(i18n)
+                              : _scheduleFields(i18n),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (desktop) ...[
                 const SizedBox(height: 16),
-                Text(
-                  steps[_step],
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                _stageCard(
+                  index: 0,
+                  title: steps[0].label,
+                  hint: hints[0],
+                  icon: steps[0].icon,
+                  child: _cargoFields(i18n),
                 ),
-                const SizedBox(height: 12),
-              ],
-              if (desktop || _step == 0)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _cargoFields(i18n),
-                  ),
+                const SizedBox(height: 16),
+                _stageCard(
+                  index: 1,
+                  title: steps[1].label,
+                  hint: hints[1],
+                  icon: steps[1].icon,
+                  child: _routeFields(i18n),
                 ),
-              if (desktop || _step == 1) ...[
-                if (desktop) const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _routeFields(i18n),
-                  ),
-                ),
-              ],
-              if (desktop || _step == 2) ...[
-                if (desktop) const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _scheduleFields(i18n),
-                  ),
+                const SizedBox(height: 16),
+                _stageCard(
+                  index: 2,
+                  title: steps[2].label,
+                  hint: hints[2],
+                  icon: steps[2].icon,
+                  child: _scheduleFields(i18n),
                 ),
               ],
               if (_error != null) ...[
@@ -247,7 +386,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                         label: i18n.t('shipment.saveDraft'),
                         variant: AppButtonVariant.secondary,
                         loading: _submitting && !_publish,
-                        onPressed: _submitting ? null : () => _submit(publish: false),
+                        onPressed: _submitting
+                            ? null
+                            : () => _submit(publish: false),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -255,7 +396,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                       child: AppButton(
                         label: i18n.t('shipment.publish'),
                         loading: _submitting && _publish,
-                        onPressed: _submitting ? null : () => _submit(publish: true),
+                        onPressed: _submitting
+                            ? null
+                            : () => _submit(publish: true),
                       ),
                     ),
                   ],
@@ -268,13 +411,15 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                         child: AppButton(
                           label: i18n.t('common.back'),
                           variant: AppButtonVariant.secondary,
-                          onPressed: _submitting ? null : () => setState(() => _step -= 1),
+                          onPressed: _submitting ? null : () => _moveStep(_step - 1),
                         ),
                       ),
                     if (_step > 0) const SizedBox(width: 12),
                     Expanded(
                       child: AppButton(
-                        label: _step < 2 ? i18n.t('common.next') : i18n.t('shipment.publish'),
+                        label: _step < 2
+                            ? i18n.t('common.next')
+                            : i18n.t('shipment.publish'),
                         loading: _submitting && _step == 2,
                         onPressed: _submitting
                             ? null
@@ -284,7 +429,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                                   return;
                                 }
                                 if (_step < 2) {
-                                  setState(() => _step += 1);
+                                  _moveStep(_step + 1);
                                 } else {
                                   _submit(publish: _publish);
                                 }
@@ -308,12 +453,66 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
     );
   }
 
+  void _selectStep(int index) {
+    if (index >= _step) return;
+    _moveStep(index);
+  }
+
+  void _moveStep(int next) {
+    if (next == _step || next < 0 || next > 2) return;
+    setState(() {
+      _stepDirection = next > _step ? 1 : -1;
+      _step = next;
+      _error = null;
+    });
+  }
+
+  void _revealStage(int index) {
+    final target = _stageKeys[index].currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      alignment: 0.02,
+    );
+  }
+
+  Widget _stageCard({
+    required int index,
+    required String title,
+    required String hint,
+    required IconData icon,
+    required Widget child,
+    bool showHeading = true,
+  }) {
+    return Card(
+      key: _stageKeys[index],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showHeading)
+              ShipmentStageHeading(icon: icon, title: title, hint: hint),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _cargoFields(I18nBundle i18n) {
     final byWeight = QuantityUnits.isTons(_quantityUnit);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppTextField(label: i18n.t('shipment.cargoType'), controller: _cargoType),
+        AppTextField(
+          label: i18n.t('shipment.cargoType'),
+          controller: _cargoType,
+        ),
         const SizedBox(height: 12),
         AppTextField(
           label: i18n.t('shipment.cargoDescription'),
@@ -323,7 +522,8 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
         const SizedBox(height: 16),
         Text(
           i18n.t('shipment.measureBy'),
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -331,14 +531,18 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           runSpacing: 8,
           children: [
             _measureChip(i18n.t('shipment.measureTons'), QuantityUnits.tons),
-            _measureChip(i18n.t('shipment.measurePallets'), QuantityUnits.pallets),
+            _measureChip(
+              i18n.t('shipment.measurePallets'),
+              QuantityUnits.pallets,
+            ),
             _measureChip(i18n.t('shipment.measureUnits'), QuantityUnits.units),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           QuantityUnits.measureHint(i18n, _quantityUnit),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted, height: 1.4),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppColors.muted, height: 1.4),
         ),
         const SizedBox(height: 16),
         if (!byWeight) ...[
@@ -436,13 +640,15 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           alignment: AlignmentDirectional.centerStart,
           child: Text(
             i18n.t('paymentContract.title'),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(height: 6),
         Text(
           i18n.t('paymentContract.wizardHint'),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.muted, height: 1.4),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppColors.muted, height: 1.4),
         ),
         const SizedBox(height: 8),
         PaymentTermsFields(
@@ -463,53 +669,6 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           value: _publish,
           onChanged: (value) => setState(() => _publish = value),
         ),
-      ],
-    );
-  }
-}
-
-class _NativeStepper extends StatelessWidget {
-  const _NativeStepper({required this.steps, required this.current});
-
-  final List<String> steps;
-  final int current;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var index = 0; index < steps.length; index++) ...[
-          if (index > 0) const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: index < current
-                        ? AppColors.navy
-                        : index == current
-                            ? AppColors.accentFrom
-                            : AppColors.border,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  steps[index],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: index == current ? AppColors.navy : AppColors.muted,
-                        fontWeight: index == current ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

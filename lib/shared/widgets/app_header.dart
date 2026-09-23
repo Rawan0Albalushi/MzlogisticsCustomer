@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/router/section_paths.dart';
 import '../../core/theme/app_colors.dart';
+
+void popToParent(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+    return;
+  }
+  context.go(sectionFallback(GoRouterState.of(context).uri.path));
+}
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   const AppHeader({
@@ -25,7 +34,8 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   static const double _accent = 10;
   static const double _bottomRadius = 28;
 
-  double get _toolbarHeight => subtitle == null ? _toolbar : _toolbarWithSubtitle;
+  double get _toolbarHeight =>
+      subtitle == null ? _toolbar : _toolbarWithSubtitle;
 
   @override
   Size get preferredSize => Size.fromHeight(_toolbarHeight + _accent);
@@ -64,16 +74,11 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                       children: [
                         if (back)
                           IconButton(
-                            icon: const Icon(Icons.arrow_back),
+                            tooltip: MaterialLocalizations.of(context)
+                                .backButtonTooltip,
+                            icon: const BackButtonIcon(),
                             color: AppColors.white,
-                            onPressed: onBack ??
-                                () {
-                                  if (context.canPop()) {
-                                    context.pop();
-                                  } else {
-                                    context.go('/home');
-                                  }
-                                },
+                            onPressed: onBack ?? () => popToParent(context),
                           )
                         else
                           const SizedBox(width: 20),
@@ -86,7 +91,8 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                                 title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
                                       color: AppColors.white,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -97,9 +103,8 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                                   subtitle!,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppColors.navyMuted,
-                                      ),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: AppColors.navyMuted),
                                 ),
                               ],
                             ],
@@ -114,10 +119,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ...?actions,
-                                const SizedBox(width: 8),
-                              ],
+                              children: [...?actions, const SizedBox(width: 8)],
                             ),
                           ),
                         ),
@@ -131,7 +133,9 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                       width: double.infinity,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(Radius.circular(20)),
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(20),
+                          ),
                           gradient: LinearGradient(
                             begin: AlignmentDirectional.centerStart,
                             end: AlignmentDirectional.centerEnd,

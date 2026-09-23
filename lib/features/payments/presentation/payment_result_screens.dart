@@ -94,6 +94,7 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
     final i18n = ref.i18n;
     return PageScaffold(
       title: i18n.t('payment.successTitle'),
+      showBack: true,
       body: ContentWidth(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -203,6 +204,7 @@ class _PaymentCancelScreenState extends ConsumerState<PaymentCancelScreen> {
     final jobId = _jobId;
     return PageScaffold(
       title: i18n.t('payment.cancelTitle'),
+      showBack: true,
       body: ContentWidth(
         child: Padding(
           padding: const EdgeInsets.all(24),

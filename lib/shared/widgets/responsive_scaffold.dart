@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/i18n/i18n_controller.dart';
+import '../../core/router/section_paths.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/breakpoints.dart';
@@ -99,77 +100,132 @@ class ResponsiveScaffold extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= AppConstants.desktopBreakpoint;
     final destinations = isDesktop
-        ? shellDestinations.where((item) => item.location != '/billing').toList()
+        ? shellDestinations
+              .where((item) => item.location != '/billing')
+              .toList()
         : shellDestinations.where((item) => item.mobile).toList();
 
-    final location = GoRouterState.of(context).uri.path;
-    var selected = destinations.indexWhere(
-      (item) => location == item.location || location.startsWith('${item.location}/'),
+    final location = normalizeLocation(GoRouterState.of(context).uri.path);
+    final selected = _selectedIndex(destinations, isDesktop: isDesktop);
+    final sectionRoot = isShellSectionRoot(location);
+    final headerDestination = _headerDestination(
+      location,
+      destinations[selected],
     );
-    if (selected < 0 && !isDesktop && (location.startsWith('/invoices') || location.startsWith('/payments'))) {
-      selected = destinations.indexWhere((item) => item.location == '/billing');
-    }
-    if (selected < 0) selected = 0;
 
     final header = AppHeader(
-      title: i18n.t(destinations[selected].labelKey),
-      subtitle: destinations[selected].location == '/home' && userName.isNotEmpty
-          ? i18n.t('home.greeting', {'name': userName})
-          : destinations[selected].location == '/profile'
-              ? i18n.t('profile.headerSubtitle')
-              : destinations[selected].location == '/shipments'
-                  ? i18n.t('shipment.headerSubtitle')
-                  : destinations[selected].location == '/jobs'
-                      ? i18n.t('job.headerSubtitle')
-                      : null,
+      title: i18n.t(headerDestination.labelKey),
+      subtitle: _subtitle(headerDestination.location),
       showBack: false,
-      actions: [
-        _NotificationButton(i18n: i18n, unreadCount: unreadCount),
-      ],
+      actions: [_NotificationButton(i18n: i18n, unreadCount: unreadCount)],
     );
 
-    if (isDesktop) {
-      return Scaffold(
-        body: Row(
-          children: [
-            _SideNav(
+    final scaffold = isDesktop
+        ? Scaffold(
+            body: Row(
+              children: [
+                _SideNav(
+                  i18n: i18n,
+                  destinations: destinations,
+                  selectedIndex: selected,
+                  userName: userName,
+                  onSelect: (index) => _openDestination(destinations, index),
+                ),
+                Expanded(
+                  child: sectionRoot
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              height: header.preferredSize.height,
+                              width: double.infinity,
+                              child: header,
+                            ),
+                            Expanded(child: navigationShell),
+                          ],
+                        )
+                      : navigationShell,
+                ),
+              ],
+            ),
+          )
+        : Scaffold(
+            appBar: sectionRoot ? header : null,
+            body: navigationShell,
+            bottomNavigationBar: _BottomNavBar(
               i18n: i18n,
               destinations: destinations,
               selectedIndex: selected,
-              userName: userName,
-              onSelect: (index) => _go(context, destinations[index].location),
+              onSelect: (index) => _openDestination(destinations, index),
             ),
-            Expanded(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: header.preferredSize.height,
-                    width: double.infinity,
-                    child: header,
-                  ),
-                  Expanded(child: navigationShell),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+          );
 
-    return Scaffold(
-      appBar: header,
-      body: navigationShell,
-      bottomNavigationBar: _BottomNavBar(
-        i18n: i18n,
-        destinations: destinations,
-        selectedIndex: selected.clamp(0, destinations.length - 1),
-        onSelect: (index) => _go(context, destinations[index].location),
-      ),
+    return BackButtonListener(
+      onBackButtonPressed: () => _handleSystemBack(context),
+      child: scaffold,
     );
   }
 
-  void _go(BuildContext context, String location) {
-    context.go(location);
+  int _selectedIndex(
+    List<ShellDestination> destinations, {
+    required bool isDesktop,
+  }) {
+    final branch = shellDestinations[navigationShell.currentIndex];
+    var selected = destinations.indexWhere(
+      (item) => item.location == branch.location,
+    );
+    if (selected < 0 &&
+        !isDesktop &&
+        (branch.location == '/invoices' || branch.location == '/payments')) {
+      selected = destinations.indexWhere((item) => item.location == '/billing');
+    }
+    if (selected < 0) return 0;
+    return selected;
+  }
+
+  ShellDestination _headerDestination(
+    String location,
+    ShellDestination selected,
+  ) {
+    for (final item in shellDestinations) {
+      if (item.location == location) return item;
+    }
+    return selected;
+  }
+
+  String? _subtitle(String location) {
+    if (location == '/home' && userName.isNotEmpty) {
+      return i18n.t('home.greeting', {'name': userName});
+    }
+    if (location == '/profile') return i18n.t('profile.headerSubtitle');
+    if (location == '/shipments') return i18n.t('shipment.headerSubtitle');
+    if (location == '/jobs') return i18n.t('job.headerSubtitle');
+    return null;
+  }
+
+  void _openDestination(List<ShellDestination> destinations, int index) {
+    final branchIndex = shellDestinations.indexWhere(
+      (item) => item.location == destinations[index].location,
+    );
+    if (branchIndex < 0) return;
+    navigationShell.goBranch(
+      branchIndex,
+      initialLocation: branchIndex == navigationShell.currentIndex,
+    );
+  }
+
+  Future<bool> _handleSystemBack(BuildContext context) async {
+    final router = GoRouter.of(context);
+    if (router.canPop()) return false;
+    final path = GoRouterState.of(context).uri.path;
+    if (!isShellSectionRoot(path)) {
+      router.go(sectionFallback(path));
+      return true;
+    }
+    if (navigationShell.currentIndex != 0) {
+      navigationShell.goBranch(0);
+      return true;
+    }
+    return false;
   }
 }
 
@@ -280,11 +336,13 @@ class _BottomNavItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: color,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                            fontSize: 11,
-                            height: 1.1,
-                          ),
+                        color: color,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        fontSize: 11,
+                        height: 1.1,
+                      ),
                     ),
                   ],
                 ),
@@ -333,7 +391,8 @@ class _SideNav extends StatelessWidget {
                       children: [
                         Text(
                           i18n.t('app.name'),
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 color: AppColors.white,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -341,9 +400,8 @@ class _SideNav extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           i18n.t('app.customer'),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.navyMuted,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.navyMuted),
                         ),
                       ],
                     ),
@@ -361,27 +419,37 @@ class _SideNav extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Material(
-                      color: selected ? const Color(0x1AFFFFFF) : Colors.transparent,
+                      color: selected
+                          ? const Color(0x1AFFFFFF)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(AppTheme.radius),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppTheme.radius),
                         onTap: () => onSelect(index),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           child: Row(
                             children: [
                               Icon(
                                 selected ? item.selectedIcon : item.icon,
-                                color: selected ? AppColors.amber : AppColors.navyMuted,
+                                color: selected
+                                    ? AppColors.amber
+                                    : AppColors.navyMuted,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   i18n.t(item.labelKey),
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
                                         color: AppColors.white,
-                                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                                        fontWeight: selected
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
                                       ),
                                 ),
                               ),
@@ -417,7 +485,9 @@ class _SideNav extends StatelessWidget {
                       radius: 16,
                       backgroundColor: AppColors.amberSoft,
                       child: Text(
-                        userName.isEmpty ? 'C' : userName.substring(0, 1).toUpperCase(),
+                        userName.isEmpty
+                            ? 'C'
+                            : userName.substring(0, 1).toUpperCase(),
                         style: const TextStyle(
                           color: AppColors.onNeon,
                           fontWeight: FontWeight.w700,
@@ -431,9 +501,9 @@ class _SideNav extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -448,10 +518,7 @@ class _SideNav extends StatelessWidget {
 }
 
 class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({
-    required this.i18n,
-    required this.unreadCount,
-  });
+  const _NotificationButton({required this.i18n, required this.unreadCount});
 
   final I18nBundle i18n;
   final int unreadCount;

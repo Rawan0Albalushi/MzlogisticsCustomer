@@ -28,6 +28,7 @@ import '../../features/trips/presentation/trip_detail_screen.dart';
 import '../../shared/widgets/responsive_scaffold.dart';
 import '../constants/app_constants.dart';
 import '../i18n/i18n_controller.dart';
+import 'page_transitions.dart';
 
 class RouterRefresh extends ChangeNotifier {
   void ping() => notifyListeners();
@@ -42,8 +43,10 @@ final routerRefreshProvider = Provider<RouterRefresh>((ref) {
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ref.watch(routerRefreshProvider);
+  final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -62,128 +65,220 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       return null;
     },
-    routes: [
-      GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
-      GoRoute(
-        path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
-      ),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return _AppShell(navigationShell: navigationShell);
-        },
-        branches: [
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/home', builder: (context, state) => const HomeScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(path: '/shipments', builder: (context, state) => const ShipmentsListScreen()),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/jobs', builder: (context, state) => const JobsListScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/invoices', builder: (context, state) => const InvoicesScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/payments', builder: (context, state) => const PaymentsScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/billing', builder: (context, state) => const BillingScreen())],
-          ),
-          StatefulShellBranch(
-            routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
-          ),
-        ],
-      ),
-      GoRoute(path: '/shipments/new', builder: (context, state) => const CreateShipmentScreen()),
-      GoRoute(
-        path: '/shipments/:id',
-        builder: (context, state) => ShipmentDetailScreen(
-          shipmentId: int.parse(state.pathParameters['id']!),
+    routes: customerRoutes(rootNavigatorKey: rootNavigatorKey),
+  );
+});
+
+List<RouteBase> customerRoutes({
+  required GlobalKey<NavigatorState> rootNavigatorKey,
+}) {
+  Page<void> section(GoRouterState state, Widget child) {
+    return NoTransitionPage<void>(key: state.pageKey, child: child);
+  }
+
+  Page<void> forward(GoRouterState state, Widget child) {
+    return forwardPage(key: state.pageKey, child: child);
+  }
+
+  int routeId(GoRouterState state, [String name = 'id']) {
+    return int.parse(state.pathParameters[name]!);
+  }
+
+  return [
+    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) {
+        return _AppShell(navigationShell: navigationShell);
+      },
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/home',
+              pageBuilder: (context, state) =>
+                  section(state, const HomeScreen()),
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/shipments/:id/quotations',
-        builder: (context, state) => QuotationsScreen(
-          shipmentId: int.parse(state.pathParameters['id']!),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/shipments',
+              pageBuilder: (context, state) =>
+                  section(state, const ShipmentsListScreen()),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  parentNavigatorKey: rootNavigatorKey,
+                  pageBuilder: (context, state) =>
+                      forward(state, const CreateShipmentScreen()),
+                ),
+                GoRoute(
+                  path: ':id',
+                  pageBuilder: (context, state) => forward(
+                    state,
+                    ShipmentDetailScreen(shipmentId: routeId(state)),
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: 'quotations',
+                      pageBuilder: (context, state) => forward(
+                        state,
+                        QuotationsScreen(shipmentId: routeId(state)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/quotations/:id',
+              pageBuilder: (context, state) => forward(
+                state,
+                QuotationDetailScreen(quotationId: routeId(state)),
+              ),
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/quotations/:id',
-        builder: (context, state) => QuotationDetailScreen(
-          quotationId: int.parse(state.pathParameters['id']!),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/jobs',
+              pageBuilder: (context, state) =>
+                  section(state, const JobsListScreen()),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  pageBuilder: (context, state) =>
+                      forward(state, JobDetailScreen(jobId: routeId(state))),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/trips/:id',
+              pageBuilder: (context, state) =>
+                  forward(state, TripDetailScreen(tripId: routeId(state))),
+              routes: [
+                GoRoute(
+                  path: 'tracking',
+                  redirect: (context, state) {
+                    if (!AppConstants.liveTrackingEnabled) {
+                      return '/trips/${state.pathParameters['id']}';
+                    }
+                    return null;
+                  },
+                  pageBuilder: (context, state) => forward(
+                    state,
+                    TripTrackingScreen(tripId: routeId(state)),
+                  ),
+                ),
+                GoRoute(
+                  path: 'pod',
+                  pageBuilder: (context, state) =>
+                      forward(state, PodScreen(tripId: routeId(state))),
+                ),
+              ],
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/jobs/:id',
-        builder: (context, state) => JobDetailScreen(
-          jobId: int.parse(state.pathParameters['id']!),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/invoices',
+              pageBuilder: (context, state) =>
+                  section(state, const InvoicesScreen()),
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/trips/:id',
-        builder: (context, state) => TripDetailScreen(
-          tripId: int.parse(state.pathParameters['id']!),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/payments',
+              pageBuilder: (context, state) =>
+                  section(state, const PaymentsScreen()),
+              routes: [
+                GoRoute(
+                  path: 'checkout/:id',
+                  parentNavigatorKey: rootNavigatorKey,
+                  pageBuilder: (context, state) {
+                    final args = CheckoutArgs.fromExtra(state.extra);
+                    return forward(
+                      state,
+                      PaymentCheckoutScreen(
+                        paymentId: routeId(state),
+                        paymentLink: args.paymentLink,
+                        jobId: args.jobId,
+                        invoicePayment: args.invoicePayment,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/trips/:id/tracking',
-        redirect: (context, state) {
-          if (!AppConstants.liveTrackingEnabled) {
-            return '/trips/${state.pathParameters['id']}';
-          }
-          return null;
-        },
-        builder: (context, state) => TripTrackingScreen(
-          tripId: int.parse(state.pathParameters['id']!),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/billing',
+              pageBuilder: (context, state) =>
+                  section(state, const BillingScreen()),
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/trips/:id/pod',
-        builder: (context, state) => PodScreen(
-          tripId: int.parse(state.pathParameters['id']!),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/profile',
+              pageBuilder: (context, state) =>
+                  section(state, const ProfileScreen()),
+            ),
+          ],
         ),
-      ),
-      GoRoute(
-        path: '/notifications',
-        builder: (context, state) => const NotificationsScreen(),
-      ),
-      GoRoute(
-        path: '/payments/checkout/:id',
-        builder: (context, state) {
-          final args = CheckoutArgs.fromExtra(state.extra);
-          return PaymentCheckoutScreen(
-            paymentId: int.parse(state.pathParameters['id']!),
-            paymentLink: args.paymentLink,
-            jobId: args.jobId,
-            invoicePayment: args.invoicePayment,
-          );
-        },
-      ),
-      GoRoute(
-        path: '/payment/success',
-        builder: (context, state) => PaymentSuccessScreen(
-          paymentId: int.tryParse(state.uri.queryParameters['payment_id'] ?? ''),
+      ],
+    ),
+    GoRoute(
+      path: '/notifications',
+      pageBuilder: (context, state) =>
+          forward(state, const NotificationsScreen()),
+    ),
+    GoRoute(
+      path: '/payment/success',
+      pageBuilder: (context, state) => forward(
+        state,
+        PaymentSuccessScreen(
+          paymentId: int.tryParse(
+            state.uri.queryParameters['payment_id'] ?? '',
+          ),
           jobId: int.tryParse(state.uri.queryParameters['job_id'] ?? ''),
           success: state.uri.queryParameters['success'] != '0',
         ),
       ),
-      GoRoute(
-        path: '/payment/cancel',
-        builder: (context, state) => PaymentCancelScreen(
-          paymentId: int.tryParse(state.uri.queryParameters['payment_id'] ?? ''),
+    ),
+    GoRoute(
+      path: '/payment/cancel',
+      pageBuilder: (context, state) => forward(
+        state,
+        PaymentCancelScreen(
+          paymentId: int.tryParse(
+            state.uri.queryParameters['payment_id'] ?? '',
+          ),
           jobId: int.tryParse(state.uri.queryParameters['job_id'] ?? ''),
           invoicePayment: state.uri.queryParameters['invoice'] == '1',
         ),
       ),
-    ],
-  );
-});
+    ),
+  ];
+}
 
 class _AppShell extends ConsumerWidget {
   const _AppShell({required this.navigationShell});
@@ -194,7 +289,9 @@ class _AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final i18n = ref.i18n;
     final user = ref.watch(authControllerProvider).user;
-    final unread = ref.watch(notificationsProvider).maybeWhen(
+    final unread = ref
+        .watch(notificationsProvider)
+        .maybeWhen(
           data: (page) => page.items.where((item) => item.isUnread).length,
           orElse: () => 0,
         );

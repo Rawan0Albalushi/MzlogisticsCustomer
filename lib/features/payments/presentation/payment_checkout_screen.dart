@@ -302,6 +302,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
 
     return PageScaffold(
       title: i18n.t('payment.checkoutTitle'),
+      showBack: true,
       body: ContentWidth(
         child: Padding(
           padding: const EdgeInsets.all(24),

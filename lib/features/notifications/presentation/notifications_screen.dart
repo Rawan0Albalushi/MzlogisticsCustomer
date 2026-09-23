@@ -87,6 +87,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return PageScaffold(
       title: i18n.t('notification.title'),
+      showBack: true,
       actions: [
         TextButton(
           style: TextButton.styleFrom(foregroundColor: Colors.white),

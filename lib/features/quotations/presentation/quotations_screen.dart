@@ -151,12 +151,14 @@ class _QuotationsScreenState extends ConsumerState<QuotationsScreen> {
       _leaveComparison();
       return PageScaffold(
         title: i18n.t('shipment.quoteAccepted'),
+        showBack: true,
         body: LoadingState(label: i18n.t('common.loading')),
       );
     }
 
     return PageScaffold(
       title: i18n.t('quotation.compare'),
+      showBack: true,
       body: AsyncBody<PagedResult<Quotation>>(
         value: value,
         i18n: i18n,
@@ -448,6 +450,7 @@ class QuotationDetailScreen extends ConsumerWidget {
     final value = ref.watch(quotationDetailProvider(quotationId));
     return PageScaffold(
       title: i18n.t('quotation.detail'),
+      showBack: true,
       body: AsyncBody<Quotation>(
         value: value,
         i18n: i18n,
