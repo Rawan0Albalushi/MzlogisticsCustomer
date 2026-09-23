@@ -163,6 +163,7 @@
   "home.heroBody": "Create a request and compare quotations from service providers.",
   "home.newShipment": "New shipment request",
   "home.snapshot": "At a glance",
+  "home.ofTotal": "{current} of {total}",
   "home.quickActions": "Shortcuts",
   "home.shipmentsOpen": "Open requests",
   "home.shipmentsTotal": "All requests",

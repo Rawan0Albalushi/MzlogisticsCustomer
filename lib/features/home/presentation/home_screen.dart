@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_appear.dart';
@@ -34,7 +33,12 @@ class HomeScreen extends ConsumerWidget {
       onRetry: () => ref.invalidate(dashboardProvider),
       builder: (summary) {
         return ContentWidth(
-          padding: EdgeInsets.fromLTRB(context.isDesktop ? 24 : 20, 12, context.isDesktop ? 24 : 20, 28),
+          padding: EdgeInsets.fromLTRB(
+            context.isDesktop ? 24 : 20,
+            8,
+            context.isDesktop ? 24 : 20,
+            28,
+          ),
           child: RefreshIndicator(
             color: AppColors.navy,
             onRefresh: () async {
@@ -48,28 +52,10 @@ class HomeScreen extends ConsumerWidget {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                if (context.isDesktop)
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Expanded(flex: 4, child: _HeroCard(fillHeight: true)),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          flex: 6,
-                          child: _SnapshotSection(i18n: i18n, summary: summary),
-                        ),
-                      ],
-                    ),
-                  )
-                else ...[
-                  const _HeroCard(),
-                  const SizedBox(height: 24),
-                  _SnapshotSection(i18n: i18n, summary: summary),
-                ],
-                const SizedBox(height: 24),
-                _QuickActions(i18n: i18n),
-                const SizedBox(height: 24),
+                _OperationsBoard(i18n: i18n, summary: summary),
+                const SizedBox(height: 28),
+                _ActivityChart(i18n: i18n, summary: summary),
+                const SizedBox(height: 28),
                 _RecentSection(
                   i18n: i18n,
                   shipments: shipments,
@@ -84,110 +70,589 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _HeroCard extends ConsumerWidget {
-  const _HeroCard({this.fillHeight = false});
-
-  final bool fillHeight;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final i18n = ref.i18n;
-    final text = Theme.of(context).textTheme;
-    final body = Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.navySoft,
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            ),
-            child: const Icon(Icons.local_shipping_outlined, color: AppColors.navy, size: 22),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            i18n.t('home.heroTitle'),
-            style: text.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            i18n.t('home.heroBody'),
-            style: text.bodyMedium?.copyWith(
-              color: AppColors.muted,
-              height: 1.45,
-            ),
-          ),
-          if (fillHeight) const Spacer() else const SizedBox(height: 18),
-          if (fillHeight) const SizedBox(height: 18),
-          AppButton(
-            label: i18n.t('home.newShipment'),
-            icon: Icons.add,
-            expanded: true,
-            onPressed: () => context.push('/shipments/new'),
-          ),
-        ],
-      ),
-    );
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const ColoredBox(
-            color: AppColors.accentFrom,
-            child: SizedBox(height: 3),
-          ),
-          if (fillHeight) Expanded(child: body) else body,
-        ],
-      ),
-    );
-  }
-}
-
-class _SnapshotSection extends StatelessWidget {
-  const _SnapshotSection({
-    required this.i18n,
-    required this.summary,
-  });
+class _OperationsBoard extends StatelessWidget {
+  const _OperationsBoard({required this.i18n, required this.summary});
 
   final I18nBundle i18n;
   final DashboardSummary summary;
 
   @override
   Widget build(BuildContext context) {
-    final tiles = [
-      _SnapshotTileData(
+    return Card(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final split = constraints.maxWidth >= 680;
+          final intro = _BoardIntro(i18n: i18n, wide: split);
+          final figures = _BoardFigures(i18n: i18n, summary: summary);
+
+          if (!split) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [intro, const SizedBox(height: 20), figures],
+              ),
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 20, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 5, child: intro),
+                const SizedBox(width: 28),
+                Expanded(
+                  flex: 6,
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      border: BorderDirectional(
+                        start: BorderSide(color: AppColors.border),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 24),
+                      child: figures,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BoardIntro extends StatelessWidget {
+  const _BoardIntro({required this.i18n, required this.wide});
+
+  final I18nBundle i18n;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FreightLane(),
+        const SizedBox(height: 18),
+        Text(
+          i18n.t('home.heroTitle'),
+          style: text.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          i18n.t('home.heroBody'),
+          style: text.bodyMedium?.copyWith(color: AppColors.muted, height: 1.5),
+        ),
+        const SizedBox(height: 20),
+        AppButton(
+          label: i18n.t('home.newShipment'),
+          icon: Icons.add,
+          expanded: !wide,
+          onPressed: () => context.push('/shipments/new'),
+        ),
+      ],
+    );
+  }
+}
+
+class _FreightLane extends StatefulWidget {
+  const _FreightLane();
+
+  @override
+  State<_FreightLane> createState() => _FreightLaneState();
+}
+
+class _FreightLaneState extends State<_FreightLane>
+    with SingleTickerProviderStateMixin {
+  static const _iconSize = 52.0;
+  static const _edge = 18.0;
+
+  late final AnimationController _motion;
+
+  @override
+  void initState() {
+    super.initState();
+    _motion = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    if (reduced) {
+      if (_motion.isAnimating) _motion.stop();
+      _motion.value = 0.46;
+      return;
+    }
+    if (!_motion.isAnimating) _motion.repeat();
+  }
+
+  @override
+  void dispose() {
+    _motion.dispose();
+    super.dispose();
+  }
+
+  double _travel(double t) {
+    const depart = 0.1;
+    const arrive = 0.78;
+    if (t <= depart) return 0;
+    if (t >= arrive) return 1;
+    return Curves.easeInOutCubic.transform((t - depart) / (arrive - depart));
+  }
+
+  double _opacity(double t) {
+    if (t < 0.08) return t / 0.08;
+    if (t > 0.9) return ((1 - t) / 0.1).clamp(0, 1);
+    return 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    final mirror = Directionality.of(context) == TextDirection.rtl;
+
+    return RepaintBoundary(
+      child: ExcludeSemantics(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final span = (constraints.maxWidth - _edge * 2 - _iconSize)
+                    .clamp(0.0, constraints.maxWidth);
+                return AnimatedBuilder(
+                  animation: _motion,
+                  builder: (context, child) {
+                    final raw = reduced ? 0.46 : _motion.value;
+                    final along = reduced ? 0.42 : _travel(raw);
+                    final opacity = reduced ? 1.0 : _opacity(raw);
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Row(
+                          children: [
+                            _LaneNode(filled: true),
+                            SizedBox(width: 8),
+                            Expanded(child: _LaneDash(emphasis: true)),
+                            SizedBox(width: 8),
+                            _LaneNode(filled: false),
+                          ],
+                        ),
+                        PositionedDirectional(
+                          start: _edge + span * along,
+                          top: 0,
+                          bottom: 0,
+                          child: Opacity(opacity: opacity, child: child),
+                        ),
+                      ],
+                    );
+                  },
+                  child: Transform.flip(
+                    flipX: mirror,
+                    child: const _ColoredTruck(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ColoredTruck extends StatelessWidget {
+  const _ColoredTruck();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      key: Key('home-freight-truck'),
+      width: 52,
+      height: 34,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 6,
+            child: _TruckBox(
+              width: 32,
+              height: 16,
+              color: AppColors.navy,
+              radius: 3,
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 12,
+            child: ColoredBox(
+              color: AppColors.accentFrom,
+              child: SizedBox(width: 32, height: 4),
+            ),
+          ),
+          Positioned(
+            left: 28,
+            top: 9,
+            child: _TruckBox(
+              width: 18,
+              height: 13,
+              color: Color(0xFF3B7AF5),
+              radius: 4,
+            ),
+          ),
+          Positioned(
+            left: 36,
+            top: 12,
+            child: _TruckBox(
+              width: 7,
+              height: 5,
+              color: AppColors.white,
+              radius: 1,
+            ),
+          ),
+          Positioned(left: 6, top: 18, child: _TruckWheel()),
+          Positioned(left: 34, top: 18, child: _TruckWheel()),
+        ],
+      ),
+    );
+  }
+}
+
+class _TruckBox extends StatelessWidget {
+  const _TruckBox({
+    required this.width,
+    required this.height,
+    required this.color,
+    required this.radius,
+  });
+
+  final double width;
+  final double height;
+  final Color color;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: SizedBox(width: width, height: height),
+    );
+  }
+}
+
+class _TruckWheel extends StatelessWidget {
+  const _TruckWheel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: const BoxDecoration(
+        color: AppColors.ink,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: 4,
+        height: 4,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+class _LaneNode extends StatelessWidget {
+  const _LaneNode({required this.filled});
+
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: filled ? AppColors.navy : AppColors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.navy, width: 1.6),
+      ),
+    );
+  }
+}
+
+class _LaneDash extends StatelessWidget {
+  const _LaneDash({this.emphasis = false});
+
+  final bool emphasis;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashPainter(
+        color: emphasis ? AppColors.navy : AppColors.navyMuted,
+      ),
+      child: const SizedBox(height: 2),
+    );
+  }
+}
+
+class _DashPainter extends CustomPainter {
+  const _DashPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    const dash = 5.0;
+    const gap = 4.0;
+    final y = size.height / 2;
+    var x = 0.0;
+    while (x < size.width) {
+      final end = (x + dash).clamp(0.0, size.width);
+      canvas.drawLine(Offset(x, y), Offset(end, y), paint);
+      x += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+class _BoardFigures extends StatelessWidget {
+  const _BoardFigures({required this.i18n, required this.summary});
+
+  final I18nBundle i18n;
+  final DashboardSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final quotations = _MetricData(
+      label: i18n.t('home.quotationsPending'),
+      value: '${summary.quotationsPending}',
+      emphasize: summary.quotationsPending > 0,
+      onTap: () => context.go('/shipments'),
+    );
+    final paid = _MetricData(
+      label: i18n.t('home.paymentsCompleted'),
+      value: formatAmount(summary.paymentsCompletedAmount),
+      centered: true,
+      onTap: () => context.go(context.isDesktop ? '/payments' : '/billing'),
+    );
+    final invoices = _MetricData(
+      label: i18n.t('home.invoices'),
+      value: '${summary.invoicesCount}',
+      onTap: () => context.go(context.isDesktop ? '/invoices' : '/billing'),
+    );
+
+    return Column(
+      children: [
+        _MetricRow(cells: [quotations, invoices]),
+        const Divider(height: 1),
+        _MetricCell(data: paid),
+      ],
+    );
+  }
+}
+
+class _MetricRow extends StatelessWidget {
+  const _MetricRow({required this.cells});
+
+  final List<_MetricData> cells;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var index = 0; index < cells.length; index++) ...[
+            if (index > 0)
+              const ColoredBox(
+                color: AppColors.border,
+                child: SizedBox(width: 1),
+              ),
+            Expanded(child: _MetricCell(data: cells[index])),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricData {
+  const _MetricData({
+    required this.label,
+    required this.value,
+    required this.onTap,
+    this.emphasize = false,
+    this.centered = false,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+  final bool emphasize;
+  final bool centered;
+}
+
+class _MetricCell extends StatelessWidget {
+  const _MetricCell({required this.data});
+
+  final _MetricData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final valueStyle = (text.titleMedium ?? const TextStyle()).copyWith(
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      height: 1.15,
+      letterSpacing: -0.3,
+      color: AppColors.ink,
+    );
+    final labelStyle = text.bodySmall?.copyWith(
+      color: AppColors.muted,
+      height: 1.2,
+    );
+    final textAlign = data.centered ? TextAlign.center : TextAlign.start;
+
+    return Semantics(
+      button: true,
+      label: '${data.value}, ${data.label}',
+      child: InkWell(
+        onTap: data.onTap,
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Column(
+              crossAxisAlignment: data.centered
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Text(data.value, textAlign: textAlign, style: valueStyle),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: data.centered
+                      ? MainAxisAlignment.center
+                      : MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (data.emphasize) ...[
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: AppColors.navy,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Flexible(
+                      child: Text(
+                        data.label,
+                        textAlign: textAlign,
+                        style: labelStyle,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityChart extends StatefulWidget {
+  const _ActivityChart({required this.i18n, required this.summary});
+
+  final I18nBundle i18n;
+  final DashboardSummary summary;
+
+  @override
+  State<_ActivityChart> createState() => _ActivityChartState();
+}
+
+class _ActivityChartState extends State<_ActivityChart>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _bars;
+
+  @override
+  void initState() {
+    super.initState();
+    _bars = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _bars.value = 1;
+      return;
+    }
+    if (_bars.value == 0 && !_bars.isAnimating) _bars.forward();
+  }
+
+  @override
+  void dispose() {
+    _bars.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = widget.summary;
+    final i18n = widget.i18n;
+    final rows = [
+      _ChartRowData(
         label: i18n.t('home.shipmentsOpen'),
-        value: '${summary.shipmentsOpen}',
-        icon: Icons.inventory_2_outlined,
+        current: summary.shipmentsOpen,
+        total: _atLeast(summary.shipmentsTotal, summary.shipmentsOpen),
         onTap: () => context.go('/shipments'),
       ),
-      _SnapshotTileData(
-        label: i18n.t('home.quotationsPending'),
-        value: '${summary.quotationsPending}',
-        icon: Icons.request_quote_outlined,
-        emphasize: summary.quotationsPending > 0,
-        onTap: () => context.go('/shipments'),
-      ),
-      _SnapshotTileData(
+      _ChartRowData(
         label: i18n.t('home.jobsActive'),
-        value: '${summary.jobsActive}',
-        icon: Icons.assignment_outlined,
+        current: summary.jobsActive,
+        total: summary.jobsActive + summary.jobsCompleted,
         onTap: () => context.go('/jobs'),
       ),
-      _SnapshotTileData(
+      _ChartRowData(
         label: i18n.t('home.tripsInTransit'),
-        value: '${summary.tripsInTransit}',
-        icon: Icons.local_shipping_outlined,
-        emphasize: summary.tripsInTransit > 0,
+        current: summary.tripsInTransit,
+        total: _atLeast(summary.tripsActive, summary.tripsInTransit),
         onTap: () => context.go('/jobs'),
       ),
     ];
@@ -196,211 +661,128 @@ class _SnapshotSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionLabel(label: i18n.t('home.snapshot')),
-        const SizedBox(height: 10),
-        _TwoColumnGrid(
-          children: [
-            for (final tile in tiles) _SnapshotTile(data: tile),
-          ],
-        ),
         const SizedBox(height: 12),
-        _TwoColumnGrid(
-          children: [
-            _SnapshotTile(
-              data: _SnapshotTileData(
-                label: i18n.t('home.paymentsCompleted'),
-                value: formatAmount(summary.paymentsCompletedAmount),
-                icon: Icons.payments_outlined,
-                compactValue: true,
-                onTap: () => context.go(context.isDesktop ? '/payments' : '/billing'),
-              ),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: AnimatedBuilder(
+              animation: _bars,
+              builder: (context, _) {
+                return Column(
+                  children: [
+                    for (var index = 0; index < rows.length; index++)
+                      _ChartRow(
+                        data: rows[index],
+                        caption: i18n.t('home.ofTotal', {
+                          'current': '${rows[index].current}',
+                          'total': '${rows[index].total}',
+                        }),
+                        progress: _rowProgress(index),
+                      ),
+                  ],
+                );
+              },
             ),
-            _SnapshotTile(
-              data: _SnapshotTileData(
-                label: i18n.t('home.invoices'),
-                value: '${summary.invoicesCount}',
-                icon: Icons.receipt_long_outlined,
-                onTap: () => context.go(context.isDesktop ? '/invoices' : '/billing'),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
   }
+
+  double _rowProgress(int index) {
+    const start = [0.0, 0.12, 0.24];
+    const end = [0.72, 0.84, 1.0];
+    final span = end[index] - start[index];
+    final local = ((_bars.value - start[index]) / span).clamp(0.0, 1.0);
+    return Curves.easeOutCubic.transform(local);
+  }
 }
 
-class _SnapshotTileData {
-  const _SnapshotTileData({
+int _atLeast(int total, int current) => total > current ? total : current;
+
+class _ChartRowData {
+  const _ChartRowData({
     required this.label,
-    required this.value,
-    required this.icon,
+    required this.current,
+    required this.total,
     required this.onTap,
-    this.emphasize = false,
-    this.compactValue = false,
   });
 
   final String label;
-  final String value;
-  final IconData icon;
+  final int current;
+  final int total;
   final VoidCallback onTap;
-  final bool emphasize;
-  final bool compactValue;
 }
 
-class _SnapshotTile extends StatelessWidget {
-  const _SnapshotTile({required this.data});
+class _ChartRow extends StatelessWidget {
+  const _ChartRow({
+    required this.data,
+    required this.caption,
+    required this.progress,
+  });
 
-  final _SnapshotTileData data;
+  final _ChartRowData data;
+  final String caption;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final iconColor = data.emphasize ? AppColors.onNeon : AppColors.navy;
-    final iconBg = data.emphasize ? AppColors.amberSoft : AppColors.mist;
+    final ratio = data.total == 0 ? 0.0 : data.current / data.total;
+    final fill = (ratio * progress).clamp(0.0, 1.0);
 
-    return Card(
-      color: data.emphasize ? AppColors.amberSoft : AppColors.white,
+    return Semantics(
+      button: true,
+      label: '${data.label}, $caption',
       child: InkWell(
         onTap: data.onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: data.emphasize ? AppColors.white : iconBg,
-                      borderRadius: BorderRadius.circular(10),
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        data.label,
+                        style: text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                    child: Icon(data.icon, color: iconColor, size: 18),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
-                    color: AppColors.muted.withValues(alpha: 0.7),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                data.value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: (data.compactValue ? text.titleMedium : text.headlineSmall)?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.4,
-                  height: 1.1,
-                  color: AppColors.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                data.label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: text.bodySmall?.copyWith(
-                  color: AppColors.muted,
-                  height: 1.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.i18n});
-
-  final I18nBundle i18n;
-
-  @override
-  Widget build(BuildContext context) {
-    final actions = [
-      (i18n.t('nav.shipmentsShort'), Icons.inventory_2_outlined, '/shipments'),
-      (i18n.t('nav.jobs'), Icons.assignment_outlined, '/jobs'),
-      (i18n.t('nav.invoices'), Icons.receipt_long_outlined, '/invoices'),
-      (i18n.t('nav.payments'), Icons.payments_outlined, '/payments'),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionLabel(label: i18n.t('home.quickActions')),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            for (var index = 0; index < actions.length; index++) ...[
-              if (index > 0) const SizedBox(width: 10),
-              Expanded(
-                child: _QuickAction(
-                  label: actions[index].$1,
-                  icon: actions[index].$2,
-                  onTap: () => context.go(actions[index].$3),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-          child: Column(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.navySoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.navy, size: 20),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.ink,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Text(
+                      caption,
+                      style: text.bodySmall?.copyWith(
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: SizedBox(
+                    height: 8,
+                    width: double.infinity,
+                    child: ColoredBox(
+                      color: AppColors.mist,
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: FractionallySizedBox(
+                          widthFactor: fill,
+                          heightFactor: 1,
+                          child: const ColoredBox(color: AppColors.navy),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -429,7 +811,9 @@ class _RecentSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _SectionLabel(label: i18n.t('home.recentShipments'))),
+            Expanded(
+              child: _SectionLabel(label: i18n.t('home.recentShipments')),
+            ),
             TextButton.icon(
               onPressed: () => context.go('/shipments'),
               iconAlignment: IconAlignment.end,
@@ -487,56 +871,34 @@ class _RecentEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const ColoredBox(
-            color: AppColors.accentFrom,
-            child: SizedBox(height: 3),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Align(
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.navySoft,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.inventory_2_outlined, color: AppColors.navy, size: 26),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  i18n.t('home.noShipments'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  i18n.t('home.emptyHint'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.muted,
-                        height: 1.45,
-                      ),
-                ),
-                const SizedBox(height: 18),
-                AppButton(
-                  label: i18n.t('home.newShipment'),
-                  icon: Icons.add_rounded,
-                  expanded: true,
-                  onPressed: () => context.push('/shipments/new'),
-                ),
-              ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+        child: Column(
+          children: [
+            const Center(child: _FreightLane()),
+            const SizedBox(height: 16),
+            Text(
+              i18n.t('home.noShipments'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              i18n.t('home.emptyHint'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppColors.muted, height: 1.45),
+            ),
+            const SizedBox(height: 18),
+            AppButton(
+              label: i18n.t('home.newShipment'),
+              icon: Icons.add_rounded,
+              expanded: true,
+              onPressed: () => context.push('/shipments/new'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -549,7 +911,10 @@ class _RecentLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final placeholders = List<Widget>.generate(columns == 1 ? 3 : 4, (_) => const _RecentSkeleton());
+    final placeholders = List<Widget>.generate(
+      columns == 1 ? 3 : 4,
+      (_) => const _RecentSkeleton(),
+    );
     if (columns == 1) {
       return Column(
         children: [
@@ -569,40 +934,33 @@ class _RecentSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.mist,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                _SkeletonBar(width: 40, height: 40, radius: 13),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       _SkeletonBar(width: 140, height: 12),
                       SizedBox(height: 8),
                       _SkeletonBar(width: 88, height: 10),
                     ],
                   ),
                 ),
-                const _SkeletonBar(width: 64, height: 22, radius: 20),
+                _SkeletonBar(width: 64, height: 22, radius: 20),
               ],
             ),
-            const SizedBox(height: 14),
-            const _SkeletonBar(width: double.infinity, height: 12),
-            const SizedBox(height: 12),
-            const Wrap(
+            SizedBox(height: 14),
+            _SkeletonBar(width: double.infinity, height: 12),
+            SizedBox(height: 12),
+            Wrap(
               spacing: 8,
               children: [
                 _SkeletonBar(width: 84, height: 26, radius: 20),
@@ -649,10 +1007,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.ink,
-          ),
+      style: Theme.of(context).textTheme.titleSmall
+          ?.copyWith(fontWeight: FontWeight.w700, color: AppColors.ink),
     );
   }
 }
@@ -666,7 +1022,12 @@ class _TwoColumnGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = <List<Widget>>[];
     for (var index = 0; index < children.length; index += 2) {
-      rows.add(children.sublist(index, index + 2 > children.length ? children.length : index + 2));
+      rows.add(
+        children.sublist(
+          index,
+          index + 2 > children.length ? children.length : index + 2,
+        ),
+      );
     }
 
     return Column(
@@ -680,7 +1041,9 @@ class _TwoColumnGrid extends StatelessWidget {
                 Expanded(child: rows[rowIndex][0]),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: rows[rowIndex].length > 1 ? rows[rowIndex][1] : const SizedBox.shrink(),
+                  child: rows[rowIndex].length > 1
+                      ? rows[rowIndex][1]
+                      : const SizedBox.shrink(),
                 ),
               ],
             ),

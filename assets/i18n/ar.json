@@ -163,6 +163,7 @@
   "home.heroBody": "أنشئ طلباً وقارن عروض الأسعار من مزودي الخدمة.",
   "home.newShipment": "طلب شحن جديد",
   "home.snapshot": "لمحة سريعة",
+  "home.ofTotal": "{current} من {total}",
   "home.quickActions": "اختصارات",
   "home.shipmentsOpen": "طلبات مفتوحة",
   "home.shipmentsTotal": "كل الطلبات",
