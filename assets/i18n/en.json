@@ -230,6 +230,7 @@
   "shipment.deliveryAddress": "Delivery address",
   "shipment.deliveryCity": "Delivery city",
   "shipment.requiredDate": "Required date",
+  "shipment.chooseDate": "Choose a date",
   "shipment.publishNow": "Publish immediately",
   "shipment.publishHint": "Published requests are visible to service providers for quotation.",
   "shipment.saveDraft": "Save as draft",

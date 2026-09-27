@@ -6,6 +6,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/models/geo_location.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
@@ -144,14 +145,20 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   }
 
   Future<void> _pickDate() async {
+    final i18n = ref.i18n;
     final now = DateTime.now();
     final selected = await showDatePicker(
       context: context,
+      locale: i18n.locale,
       initialDate: _requiredDate ?? now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 2),
     );
-    if (selected != null) setState(() => _requiredDate = selected);
+    if (selected == null) return;
+    setState(() {
+      _requiredDate = selected;
+      if (_error == i18n.t('shipment.dateRequired')) _error = null;
+    });
   }
 
   Future<void> _submit({required bool publish}) async {
@@ -289,10 +296,7 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                   layoutBuilder: (currentChild, previousChildren) {
                     return Stack(
                       alignment: Alignment.topCenter,
-                      children: [
-                        ...previousChildren,
-                        ?currentChild,
-                      ],
+                      children: [...previousChildren, ?currentChild],
                     );
                   },
                   transitionBuilder: (child, animation) {
@@ -411,7 +415,9 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                         child: AppButton(
                           label: i18n.t('common.back'),
                           variant: AppButtonVariant.secondary,
-                          onPressed: _submitting ? null : () => _moveStep(_step - 1),
+                          onPressed: _submitting
+                              ? null
+                              : () => _moveStep(_step - 1),
                         ),
                       ),
                     if (_step > 0) const SizedBox(width: 12),
@@ -615,42 +621,43 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
   }
 
   Widget _scheduleFields(I18nBundle i18n) {
+    final dateMissing = _requiredDate == null && _error != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(i18n.t('shipment.requiredDate')),
-          subtitle: Text(
-            _requiredDate == null
-                ? i18n.t('common.required')
-                : '${_requiredDate!.year}-${_requiredDate!.month.toString().padLeft(2, '0')}-${_requiredDate!.day.toString().padLeft(2, '0')}',
-          ),
-          trailing: const Icon(Icons.event),
-          onTap: _pickDate,
-        ),
+        _requiredDateField(i18n, showError: dateMissing),
+        const SizedBox(height: 12),
         AppTextField(
           label: i18n.t('common.notes'),
           hint: i18n.t('shipment.notesHint'),
           controller: _notes,
-          maxLines: 3,
+          maxLines: 2,
         ),
-        const SizedBox(height: 16),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(
-            i18n.t('paymentContract.title'),
-            style: Theme.of(context).textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 20,
+              color: AppColors.navy,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                i18n.t('paymentContract.title'),
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           i18n.t('paymentContract.wizardHint'),
           style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: AppColors.muted, height: 1.4),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 14),
         PaymentTermsFields(
           i18n: i18n,
           trigger: _billingTrigger,
@@ -662,14 +669,67 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           onUnitChanged: (value) => setState(() => _billingUnit = value),
           onDueDaysChanged: (value) => setState(() => _dueDays = value),
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(i18n.t('shipment.publishNow')),
-          subtitle: Text(i18n.t('shipment.publishHint')),
-          value: _publish,
-          onChanged: (value) => setState(() => _publish = value),
+        const SizedBox(height: 16),
+        Material(
+          color: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SwitchListTile(
+            contentPadding: const EdgeInsetsDirectional.only(start: 14, end: 8),
+            title: Text(
+              i18n.t('shipment.publishNow'),
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              i18n.t('shipment.publishHint'),
+              style: const TextStyle(color: AppColors.muted, height: 1.35),
+            ),
+            value: _publish,
+            onChanged: _submitting
+                ? null
+                : (value) => setState(() => _publish = value),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _requiredDateField(I18nBundle i18n, {required bool showError}) {
+    final missing = _requiredDate == null;
+    final value = missing
+        ? i18n.t('shipment.chooseDate')
+        : formatDate(_requiredDate, locale: i18n.locale.languageCode);
+    return Semantics(
+      button: true,
+      enabled: !_submitting,
+      label: '${i18n.t('shipment.requiredDate')}. $value',
+      child: InkWell(
+        onTap: _submitting ? null : _pickDate,
+        excludeFromSemantics: true,
+        borderRadius: BorderRadius.circular(12),
+        child: ExcludeSemantics(
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: i18n.t('shipment.requiredDate'),
+              suffixIcon: Icon(
+                Icons.calendar_today_outlined,
+                color: missing ? AppColors.muted : AppColors.navy,
+              ),
+              errorText: showError ? _error : null,
+            ),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: missing ? AppColors.muted : AppColors.ink,
+                fontWeight: missing ? FontWeight.w500 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -230,6 +230,7 @@
   "shipment.deliveryAddress": "عنوان التسليم",
   "shipment.deliveryCity": "مدينة التسليم",
   "shipment.requiredDate": "التاريخ المطلوب",
+  "shipment.chooseDate": "اختر التاريخ",
   "shipment.publishNow": "نشر فوري",
   "shipment.publishHint": "الطلبات المنشورة تظهر لمقدمي الخدمة لتقديم عروض الأسعار.",
   "shipment.saveDraft": "حفظ كمسودة",
