@@ -76,6 +76,12 @@ class TripDetailScreen extends ConsumerWidget {
                         trip.truck?.plateNumber ?? i18n.t('common.notAvailable'),
                         icon: Icons.local_shipping_outlined,
                       ),
+                      if (trip.scheduledDepartureAt != null)
+                        EntityFact(
+                          i18n.t('trip.scheduledDeparture'),
+                          formatDateTime(trip.scheduledDepartureAt, locale: locale),
+                          icon: Icons.schedule_outlined,
+                        ),
                       EntityFact(
                         i18n.t('common.eta'),
                         formatDateTime(trip.etaAt, locale: locale),

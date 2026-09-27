@@ -329,6 +329,7 @@
   "trip.empty": "No trips to show.",
   "trip.sequence": "Trip {n}",
   "trip.driver": "Driver",
+  "trip.scheduledDeparture": "Departure",
   "trip.truck": "Truck",
   "trip.planned": "Planned quantity",
   "trip.delivered": "Delivered quantity",

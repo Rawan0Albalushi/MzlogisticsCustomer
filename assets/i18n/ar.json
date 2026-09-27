@@ -329,6 +329,7 @@
   "trip.empty": "لا توجد رحلات.",
   "trip.sequence": "الرحلة {n}",
   "trip.driver": "السائق",
+  "trip.scheduledDeparture": "موعد الانطلاق",
   "trip.truck": "الشاحنة",
   "trip.planned": "الكمية المخططة",
   "trip.delivered": "الكمية المسلَّمة",

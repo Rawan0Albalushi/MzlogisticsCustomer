@@ -87,6 +87,7 @@ class Trip {
     this.otpCode,
     this.otpRequired = false,
     this.assignedAt,
+    this.scheduledDepartureAt,
     this.arrivedPickupAt,
     this.loadedAt,
     this.inTransitAt,
@@ -121,6 +122,7 @@ class Trip {
   final String? otpCode;
   final bool otpRequired;
   final DateTime? assignedAt;
+  final DateTime? scheduledDepartureAt;
   final DateTime? arrivedPickupAt;
   final DateTime? loadedAt;
   final DateTime? inTransitAt;
@@ -160,6 +162,7 @@ class Trip {
       otpCode: asString(json['otp_code']),
       otpRequired: asBool(json['otp_required']),
       assignedAt: asDateTime(json['assigned_at']),
+      scheduledDepartureAt: asDateTime(json['scheduled_departure_at']),
       arrivedPickupAt: asDateTime(json['arrived_pickup_at']),
       loadedAt: asDateTime(json['loaded_at']),
       inTransitAt: asDateTime(json['in_transit_at']),
