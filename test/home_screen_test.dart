@@ -16,6 +16,7 @@ void main() {
     await _pumpHome(tester, const Size(360, 1400), _arabic, textScale: 1.3);
     expect(find.text('تحتاج إلى شحن بضاعة؟'), findsOneWidget);
     expect(find.text('عروض بانتظار القرار'), findsOneWidget);
+    expect(find.text('المبالغ المدفوعة'), findsNothing);
     expect(find.text('طلب شحن جديد'), findsWidgets);
     expect(find.text('12 من 20'), findsOneWidget);
     expect(find.byKey(const Key('home-freight-truck')), findsWidgets);
@@ -28,6 +29,7 @@ void main() {
     await _pumpHome(tester, const Size(1280, 900), _english);
     expect(find.text('Need to move cargo?'), findsOneWidget);
     expect(find.text('Pending quotations'), findsOneWidget);
+    expect(find.text('Paid amount'), findsNothing);
     expect(find.text('12 of 20'), findsOneWidget);
     expect(find.text('4 of 11'), findsOneWidget);
     expect(tester.takeException(), isNull);

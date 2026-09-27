@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/i18n_controller.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/pagination_meta.dart';
@@ -15,6 +16,7 @@ import '../../../shared/widgets/status_badge.dart';
 import '../data/invoice_model.dart';
 import 'invoice_payment_flow.dart';
 import 'invoice_providers.dart';
+import 'invoice_rollup.dart';
 
 enum _InvoiceFilter { all, issued, paid, closed }
 
@@ -46,14 +48,17 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
       if (!_matches(invoice.status, _filter)) return false;
       return matchesSearch(query, [
         invoice.reference,
-        invoice.type,
         invoice.jobReference,
+        invoice.tripReference,
       ]);
     }).toList();
   }
 
   List<AppFilterOption<_InvoiceFilter>> _options(I18nBundle i18n, List<Invoice> items) {
-    int count(_InvoiceFilter filter) => items.where((item) => _matches(item.status, filter)).length;
+    int count(_InvoiceFilter filter) {
+      return items.where((item) => _matches(item.status, filter)).length;
+    }
+
     return [
       AppFilterOption(
         value: _InvoiceFilter.all,
@@ -93,6 +98,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
   Widget build(BuildContext context) {
     final i18n = ref.i18n;
     final value = ref.watch(invoicesProvider);
+    final now = DateTime.now();
 
     return AsyncBody<PagedResult<Invoice>>(
       value: value,
@@ -127,81 +133,64 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
           );
         }
 
-        if (context.isDesktop) {
-          return ContentWidth(
-            child: AppTableCard(
-              header: toolbar,
-              child: DataTable(
-                columns: [
-                  DataColumn(label: Text(i18n.t('common.reference'))),
-                  DataColumn(label: Text(i18n.t('common.type'))),
-                  DataColumn(label: Text(i18n.t('common.amount'))),
-                  DataColumn(label: Text(i18n.t('invoice.issued'))),
-                  DataColumn(label: Text(i18n.t('invoice.due'))),
-                  DataColumn(label: Text(i18n.t('common.status'))),
-                  DataColumn(label: Text(i18n.t('invoice.job'))),
-                  DataColumn(label: Text(i18n.t('common.actions'))),
-                ],
-                rows: [
-                  for (final invoice in visible)
-                    DataRow(
-                      cells: [
-                        DataCell(Text(invoice.reference ?? '—')),
-                        DataCell(Text(invoice.type ?? '—')),
-                        DataCell(Text(formatAmount(invoice.amount, currency: invoice.currency ?? 'OMR'))),
-                        DataCell(Text(formatDate(invoice.issuedAt, locale: i18n.locale.languageCode))),
-                        DataCell(Text(formatDate(invoice.dueAt, locale: i18n.locale.languageCode))),
-                        DataCell(StatusBadge(status: invoice.status ?? '', label: i18n.status(invoice.status))),
-                        DataCell(
-                          invoice.jobId == null
-                              ? const Text('—')
-                              : TextButton(
-                                  onPressed: () => context.push('/jobs/${invoice.jobId}'),
-                                  child: Text(invoice.jobReference ?? i18n.t('common.view')),
-                                ),
-                        ),
-                        DataCell(
-                          invoice.payable
-                              ? TextButton(
-                                  onPressed: () => startInvoicePayment(
-                                    context: context,
-                                    ref: ref,
-                                    invoice: invoice,
-                                  ),
-                                  child: Text(i18n.t('invoice.pay')),
-                                )
-                              : const Text('—'),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return AppGroupedListView<Invoice>(
+        final list = AppGroupedListView<Invoice>(
           header: toolbar,
+          padding: context.isDesktop
+              ? EdgeInsets.zero
+              : const EdgeInsets.fromLTRB(16, 12, 16, 24),
           items: visible,
           itemBuilder: (context, invoice) {
+            final overdue = invoiceIsOverdue(invoice, now);
+            final line = _contextLine(invoice, i18n, overdue);
             return AppListCard(
               embedded: true,
-              showChevron: invoice.jobId != null || invoice.payable,
+              title: invoice.reference ?? i18n.t('invoice.title'),
+              subtitleWidget: line == null
+                  ? null
+                  : Text(
+                      line,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: overdue ? AppColors.danger : AppColors.muted,
+                            fontWeight: overdue ? FontWeight.w700 : FontWeight.w500,
+                            height: 1.35,
+                          ),
+                    ),
+              meta: formatAmount(invoice.amount, currency: invoice.currency ?? 'OMR'),
+              trailing: StatusBadge(
+                status: invoice.status ?? '',
+                label: i18n.status(invoice.status),
+              ),
               onTap: invoice.payable
-                  ? () => startInvoicePayment(context: context, ref: ref, invoice: invoice)
+                  ? () => startInvoicePayment(
+                        context: context,
+                        ref: ref,
+                        invoice: invoice,
+                      )
                   : invoice.jobId == null
                       ? null
                       : () => context.push('/jobs/${invoice.jobId}'),
-              title: invoice.reference ?? i18n.t('invoice.title'),
-              subtitle: invoice.payable ? i18n.t('invoice.pay') : invoice.type ?? '',
-              meta: formatAmount(invoice.amount, currency: invoice.currency ?? 'OMR'),
-              trailing: StatusBadge(status: invoice.status ?? '', label: i18n.status(invoice.status)),
             );
           },
         );
+
+        if (context.isDesktop) return ContentWidth(child: list);
+        return list;
       },
     );
   }
+}
+
+String? _contextLine(Invoice invoice, I18nBundle i18n, bool overdue) {
+  final place = invoice.tripReference ?? invoice.jobReference;
+  final when = overdue
+      ? i18n.t('invoice.overdue')
+      : invoice.dueAt == null
+          ? null
+          : formatDate(invoice.dueAt, locale: i18n.locale.languageCode);
+  if (place != null && when != null) return '$place · $when';
+  return place ?? when;
 }
 
 bool _matches(String? status, _InvoiceFilter filter) {

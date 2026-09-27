@@ -19,6 +19,14 @@ import '../../data/shipment_model.dart';
 const shipmentDetailSplitWidth = 760.0;
 
 String shipmentNextMessage(I18nBundle i18n, ShipmentRequest shipment) {
+  if (shipment.usesAdminSelection &&
+      shipment.status == 'published' &&
+      shipment.platformOffer == null) {
+    return '';
+  }
+  if (shipment.usesAdminSelection && shipment.status == 'published') {
+    return i18n.t('shipment.nextAdminReady');
+  }
   final quotes = shipment.quotationsCount ?? shipment.quotations.length;
   return switch (shipment.status) {
     'draft' => i18n.t('shipment.nextDraft'),
@@ -32,10 +40,19 @@ String shipmentNextMessage(I18nBundle i18n, ShipmentRequest shipment) {
   };
 }
 
-({String label, String value}) shipmentQuoteFact(
+({String label, String value})? shipmentQuoteFact(
   I18nBundle i18n,
   ShipmentRequest shipment,
 ) {
+  if (shipment.usesAdminSelection) {
+    final offer = shipment.platformOffer;
+    if (offer?.customerPrice == null) return null;
+    return (
+      label: i18n.t('shipment.platformOffer'),
+      value: formatAmount(offer!.customerPrice, currency: offer.currency ?? 'OMR'),
+    );
+  }
+
   final quotes = shipment.quotationsCount ?? shipment.quotations.length;
   if (shipment.isAwarded) {
     Quotation? accepted;
@@ -103,6 +120,7 @@ class ShipmentNextStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final message = shipmentNextMessage(i18n, shipment);
     final showCompare = shipment.canCompareQuotations &&
         (shipment.quotationsCount ?? shipment.quotations.length) > 0;
 
@@ -135,11 +153,13 @@ class ShipmentNextStep extends StatelessWidget {
               failed:
                   shipment.status == 'cancelled' || shipment.status == 'expired',
             ),
-            const SizedBox(height: 16),
-            Text(
-              shipmentNextMessage(i18n, shipment),
-              style: text.bodyMedium?.copyWith(height: 1.45),
-            ),
+            if (message.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: text.bodyMedium?.copyWith(height: 1.45),
+              ),
+            ],
             if (shipment.canPublish || shipment.canCancel || showCompare) ...[
               const SizedBox(height: 14),
               Wrap(
@@ -237,6 +257,73 @@ class ShipmentRecordLayout extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class ShipmentPlatformOfferSection extends StatelessWidget {
+  const ShipmentPlatformOfferSection({
+    super.key,
+    required this.i18n,
+    required this.shipment,
+    required this.onAccept,
+  });
+
+  final I18nBundle i18n;
+  final ShipmentRequest shipment;
+  final VoidCallback onAccept;
+
+  @override
+  Widget build(BuildContext context) {
+    final offer = shipment.platformOffer;
+    if (offer == null) return const SizedBox.shrink();
+    final currency = offer.currency ?? 'OMR';
+    return SectionCard(
+      title: i18n.t('shipment.platformOffer'),
+      icon: Icons.request_quote_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InfoRow(
+            label: i18n.t('quotation.price'),
+            value: formatAmount(offer.customerPrice, currency: currency),
+          ),
+          InfoRow(
+            label: i18n.t('quotation.trucks'),
+            value: '${offer.truckCount ?? '—'}',
+          ),
+          InfoRow(
+            label: i18n.t('quotation.truckType'),
+            value: offer.truckTypeLabel ?? offer.truckType ?? '—',
+          ),
+          InfoRow(
+            label: i18n.t('quotation.trips'),
+            value: '${offer.tripCount ?? '—'}',
+          ),
+          InfoRow(
+            label: i18n.t('quotation.duration'),
+            value: '${offer.durationDays ?? '—'}',
+          ),
+          if ((offer.conditions ?? '').trim().isNotEmpty)
+            InfoRow(
+              label: i18n.t('quotation.conditions'),
+              value: offer.conditions!.trim(),
+            ),
+          const SizedBox(height: 8),
+          StatusBadge(
+            status: offer.status ?? '',
+            label: i18n.status(offer.status),
+          ),
+          if (offer.canAccept && shipment.status == 'published') ...[
+            const SizedBox(height: 14),
+            AppButton(
+              label: i18n.t('shipment.acceptPlatformOffer'),
+              icon: Icons.check_circle_outline,
+              onPressed: onAccept,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -13,6 +13,7 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/entity_summary_card.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../quotations/presentation/quotation_accept_flow.dart';
 import '../data/quantity_units.dart';
 import '../data/shipment_model.dart';
 import '../data/shipment_repository.dart';
@@ -164,11 +165,12 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         ),
                         icon: Icons.inventory_2_outlined,
                       ),
-                      EntityFact(
-                        quoteFact.label,
-                        quoteFact.value,
-                        icon: Icons.request_quote_outlined,
-                      ),
+                      if (quoteFact != null)
+                        EntityFact(
+                          quoteFact.label,
+                          quoteFact.value,
+                          icon: Icons.request_quote_outlined,
+                        ),
                     ],
                     footer: AppRoutePanel(
                       fromLabel: i18n.t('common.pickup'),
@@ -193,6 +195,28 @@ class _ShipmentDetailScreenState extends ConsumerState<ShipmentDetailScreen> {
                         context.push('/shipments/${shipment.id}/quotations'),
                   ),
                 ),
+                if (shipment.platformOffer != null &&
+                    (shipment.status == 'published' || shipment.status == 'awarded')) ...[
+                  const SizedBox(height: 16),
+                  AppAppear(
+                    index: 2,
+                    child: ShipmentPlatformOfferSection(
+                      i18n: i18n,
+                      shipment: shipment,
+                      onAccept: () {
+                        final offer = shipment.platformOffer;
+                        if (offer == null) return;
+                        startPlatformOfferAcceptance(
+                          context: context,
+                          ref: ref,
+                          offer: offer,
+                          prepaid: shipment.isPrepaid,
+                          shipmentId: shipment.id,
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 if (decisionFirst && showQuotes) ...[
                   const SizedBox(height: 16),
                   AppAppear(index: 2, child: quotations),

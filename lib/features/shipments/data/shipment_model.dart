@@ -2,6 +2,7 @@ import '../../../core/utils/json_utils.dart';
 import '../../../shared/models/organization.dart';
 import '../../payments/data/payment_contract_model.dart';
 import '../../quotations/data/quotation_model.dart';
+import 'platform_offer.dart';
 
 class ShipmentRequest {
   const ShipmentRequest({
@@ -28,6 +29,8 @@ class ShipmentRequest {
     this.customer,
     this.quotations = const [],
     this.quotationsCount,
+    this.offerSelectionMode = 'customer',
+    this.platformOffer,
     this.paymentTerms = const PaymentTermsSnapshot(),
     this.createdAt,
   });
@@ -55,6 +58,8 @@ class ShipmentRequest {
   final Organization? customer;
   final List<Quotation> quotations;
   final int? quotationsCount;
+  final String offerSelectionMode;
+  final PlatformOffer? platformOffer;
   final PaymentTermsSnapshot paymentTerms;
   final DateTime? createdAt;
 
@@ -65,7 +70,10 @@ class ShipmentRequest {
   bool get isAwarded => status == 'awarded';
 
   /// Comparison is only for open requests that still need a decision.
-  bool get canCompareQuotations => status == 'published';
+  bool get canCompareQuotations =>
+      status == 'published' && !usesAdminSelection;
+
+  bool get usesAdminSelection => offerSelectionMode == 'admin';
 
   List<Quotation> get awardedQuotations =>
       quotations.where((quotation) => quotation.isAccepted).toList();
@@ -106,6 +114,10 @@ class ShipmentRequest {
           .map((item) => Quotation.fromJson(asMap(item)))
           .toList(),
       quotationsCount: asInt(json['quotations_count']),
+      offerSelectionMode: asString(json['offer_selection_mode']) ?? 'customer',
+      platformOffer: json['platform_offer'] is Map
+          ? PlatformOffer.fromJson(asMap(json['platform_offer']))
+          : null,
       paymentTerms: PaymentTermsSnapshot.fromJson(
         json['payment_terms'] is Map ? asMap(json['payment_terms']) : null,
       ),

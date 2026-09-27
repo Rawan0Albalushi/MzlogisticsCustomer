@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
-import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/app_appear.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/async_body.dart';
@@ -459,25 +458,13 @@ class _BoardFigures extends StatelessWidget {
       emphasize: summary.quotationsPending > 0,
       onTap: () => context.go('/shipments'),
     );
-    final paid = _MetricData(
-      label: i18n.t('home.paymentsCompleted'),
-      value: formatAmount(summary.paymentsCompletedAmount),
-      centered: true,
-      onTap: () => context.go(context.isDesktop ? '/payments' : '/billing'),
-    );
     final invoices = _MetricData(
       label: i18n.t('home.invoices'),
       value: '${summary.invoicesCount}',
       onTap: () => context.go(context.isDesktop ? '/invoices' : '/billing'),
     );
 
-    return Column(
-      children: [
-        _MetricRow(cells: [quotations, invoices]),
-        const Divider(height: 1),
-        _MetricCell(data: paid),
-      ],
-    );
+    return _MetricRow(cells: [quotations, invoices]);
   }
 }
 
@@ -512,14 +499,12 @@ class _MetricData {
     required this.value,
     required this.onTap,
     this.emphasize = false,
-    this.centered = false,
   });
 
   final String label;
   final String value;
   final VoidCallback onTap;
   final bool emphasize;
-  final bool centered;
 }
 
 class _MetricCell extends StatelessWidget {
@@ -541,8 +526,6 @@ class _MetricCell extends StatelessWidget {
       color: AppColors.muted,
       height: 1.2,
     );
-    final textAlign = data.centered ? TextAlign.center : TextAlign.start;
-
     return Semantics(
       button: true,
       label: '${data.value}, ${data.label}',
@@ -550,19 +533,20 @@ class _MetricCell extends StatelessWidget {
         onTap: data.onTap,
         child: ExcludeSemantics(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             child: Column(
-              crossAxisAlignment: data.centered
-                  ? CrossAxisAlignment.center
-                  : CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(data.value, textAlign: textAlign, style: valueStyle),
+                Text(
+                  data.value,
+                  textAlign: TextAlign.center,
+                  style: valueStyle,
+                ),
                 const SizedBox(height: 2),
                 Row(
-                  mainAxisAlignment: data.centered
-                      ? MainAxisAlignment.center
-                      : MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (data.emphasize) ...[
                       Container(
@@ -576,9 +560,10 @@ class _MetricCell extends StatelessWidget {
                       const SizedBox(width: 6),
                     ],
                     Flexible(
+                      fit: FlexFit.loose,
                       child: Text(
                         data.label,
-                        textAlign: textAlign,
+                        textAlign: TextAlign.center,
                         style: labelStyle,
                       ),
                     ),
@@ -641,18 +626,21 @@ class _ActivityChartState extends State<_ActivityChart>
         label: i18n.t('home.shipmentsOpen'),
         current: summary.shipmentsOpen,
         total: _atLeast(summary.shipmentsTotal, summary.shipmentsOpen),
+        icon: Icons.inventory_2_outlined,
         onTap: () => context.go('/shipments'),
       ),
       _ChartRowData(
         label: i18n.t('home.jobsActive'),
         current: summary.jobsActive,
         total: summary.jobsActive + summary.jobsCompleted,
+        icon: Icons.assignment_outlined,
         onTap: () => context.go('/jobs'),
       ),
       _ChartRowData(
         label: i18n.t('home.tripsInTransit'),
         current: summary.tripsInTransit,
         total: _atLeast(summary.tripsActive, summary.tripsInTransit),
+        icon: Icons.local_shipping_outlined,
         onTap: () => context.go('/jobs'),
       ),
     ];
@@ -664,7 +652,7 @@ class _ActivityChartState extends State<_ActivityChart>
         const SizedBox(height: 12),
         Card(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
             child: AnimatedBuilder(
               animation: _bars,
               builder: (context, _) {
@@ -705,16 +693,18 @@ class _ChartRowData {
     required this.label,
     required this.current,
     required this.total,
+    required this.icon,
     required this.onTap,
   });
 
   final String label;
   final int current;
   final int total;
+  final IconData icon;
   final VoidCallback onTap;
 }
 
-class _ChartRow extends StatelessWidget {
+class _ChartRow extends StatefulWidget {
   const _ChartRow({
     required this.data,
     required this.caption,
@@ -726,59 +716,145 @@ class _ChartRow extends StatelessWidget {
   final double progress;
 
   @override
+  State<_ChartRow> createState() => _ChartRowState();
+}
+
+class _ChartRowState extends State<_ChartRow> {
+  bool _hovered = false;
+  bool _pressed = false;
+  bool _focused = false;
+
+  bool get _active => _hovered || _pressed || _focused;
+
+  void _setHovered(bool value) {
+    if (_hovered == value) return;
+    setState(() => _hovered = value);
+  }
+
+  void _setPressed(bool value) {
+    if (_pressed == value) return;
+    setState(() => _pressed = value);
+  }
+
+  void _setFocused(bool value) {
+    if (_focused == value) return;
+    setState(() => _focused = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
+    final caption = widget.caption;
     final text = Theme.of(context).textTheme;
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    final motion = reduced ? Duration.zero : const Duration(milliseconds: 180);
     final ratio = data.total == 0 ? 0.0 : data.current / data.total;
-    final fill = (ratio * progress).clamp(0.0, 1.0);
+    final fill = (ratio * widget.progress).clamp(0.0, 1.0);
+    final active = _active;
+    final forward = Directionality.of(context) == TextDirection.rtl ? -1.0 : 1.0;
 
     return Semantics(
       button: true,
       label: '${data.label}, $caption',
       child: InkWell(
         onTap: data.onTap,
+        onHover: _setHovered,
+        onHighlightChanged: _setPressed,
+        onFocusChange: _setFocused,
+        borderRadius: BorderRadius.circular(10),
+        splashColor: AppColors.navySoft,
+        highlightColor: Colors.transparent,
         child: ExcludeSemantics(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: AnimatedContainer(
+            duration: motion,
+            curve: Curves.easeOut,
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+            decoration: BoxDecoration(
+              color: active ? AppColors.navySoft : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _focused ? AppColors.navy : Colors.transparent,
+              ),
+            ),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        data.label,
-                        style: text.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      caption,
-                      style: text.bodySmall?.copyWith(
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                AnimatedContainer(
+                  duration: motion,
+                  curve: Curves.easeOut,
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: active ? AppColors.navy : AppColors.mist,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    data.icon,
+                    size: 18,
+                    color: active ? AppColors.white : AppColors.navy,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: SizedBox(
-                    height: 8,
-                    width: double.infinity,
-                    child: ColoredBox(
-                      color: AppColors.mist,
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: FractionallySizedBox(
-                          widthFactor: fill,
-                          heightFactor: 1,
-                          child: const ColoredBox(color: AppColors.navy),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              data.label,
+                              style: text.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            caption,
+                            style: text.bodySmall?.copyWith(
+                              color: active ? AppColors.navy : AppColors.muted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          AnimatedSlide(
+                            duration: motion,
+                            curve: Curves.easeOut,
+                            offset: Offset(active ? 0.28 * forward : 0, 0),
+                            child: Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                              color: active ? AppColors.navy : AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: SizedBox(
+                          height: 8,
+                          width: double.infinity,
+                          child: ColoredBox(
+                            color: AppColors.mist,
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: FractionallySizedBox(
+                                widthFactor: fill,
+                                heightFactor: 1,
+                                child: ColoredBox(
+                                  color: active
+                                      ? AppColors.navyDeep
+                                      : AppColors.navy,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],

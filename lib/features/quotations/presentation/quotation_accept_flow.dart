@@ -8,6 +8,7 @@ import '../../home/presentation/home_providers.dart';
 import '../../jobs/presentation/job_providers.dart';
 import '../../payments/data/checkout_args.dart';
 import '../../payments/presentation/payment_providers.dart';
+import '../../shipments/data/platform_offer.dart';
 import '../../shipments/presentation/shipment_providers.dart';
 import '../data/quotation_accept_result.dart';
 import '../data/quotation_model.dart';
@@ -65,6 +66,49 @@ Future<void> startQuotationAcceptance({
         : error.toString();
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+Future<void> startPlatformOfferAcceptance({
+  required BuildContext context,
+  required WidgetRef ref,
+  required PlatformOffer offer,
+  required bool prepaid,
+  required int shipmentId,
+}) async {
+  final i18n = ref.i18n;
+  if (!offer.canAccept) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(i18n.t('quotation.cannotAccept'))),
+    );
+    return;
+  }
+
+  final method = await showAcceptQuotationDialog(
+    context: context,
+    ref: ref,
+    prepaid: prepaid,
+  );
+  if (method == null || !context.mounted) return;
+
+  try {
+    final result = await ref.read(quotationRepositoryProvider).acceptPlatformOffer(
+          offer.id,
+          paymentMethod: prepaid ? method : null,
+        );
+    ref.invalidate(jobsProvider);
+    ref.invalidate(paymentsProvider);
+    ref.invalidate(shipmentsProvider);
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(shipmentDetailProvider(shipmentId));
+    if (!context.mounted) return;
+    _openAcceptance(context, i18n, result, prepaid: prepaid);
+  } catch (error) {
+    if (!context.mounted) return;
+    final message = error is ApiException && error.message == 'network'
+        ? i18n.t('common.networkError')
+        : error.toString();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

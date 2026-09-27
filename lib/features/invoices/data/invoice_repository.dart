@@ -14,15 +14,32 @@ class InvoiceRepository {
 
   final ApiClient _api;
 
-  Future<PagedResult<Invoice>> list({int page = 1}) async {
-    final envelope = await _api.get('/invoices', query: {'page': page});
-    return PagedResult(
-      items: envelope.list
-          .whereType<Map>()
-          .map((item) => Invoice.fromJson(asMap(item)))
-          .toList(),
-      meta: PaginationMeta.fromJson(envelope.meta.isEmpty ? envelope.map : envelope.meta),
-    );
+  /// The invoice screen has no pager, so the statement includes every page.
+  Future<PagedResult<Invoice>> list() async {
+    final items = <Invoice>[];
+    var page = 1;
+    var meta = const PaginationMeta();
+    const pageSize = 50;
+    const maxPages = 20;
+
+    while (page <= maxPages) {
+      final envelope = await _api.get('/invoices', query: {
+        'page': page,
+        'per_page': pageSize,
+      });
+      items.addAll(
+        envelope.list
+            .whereType<Map>()
+            .map((item) => Invoice.fromJson(asMap(item))),
+      );
+      meta = PaginationMeta.fromJson(
+        envelope.meta.isEmpty ? envelope.map : envelope.meta,
+      );
+      if (!meta.hasMore) break;
+      page++;
+    }
+
+    return PagedResult(items: items, meta: meta);
   }
 
   Future<QuotationAcceptResult> pay(int id, {required String paymentMethod}) async {

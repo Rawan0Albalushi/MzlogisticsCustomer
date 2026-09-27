@@ -27,7 +27,10 @@ class ShipmentCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final locale = i18n.locale.languageCode;
     final status = shipment.status ?? '';
-    final quotes = shipment.quotationsCount ?? shipment.quotations.length;
+    final quotes = shipment.usesAdminSelection
+        ? 0
+        : (shipment.quotationsCount ?? shipment.quotations.length);
+    final platformOffer = shipment.platformOffer;
     final cargo = shipment.cargoType?.trim();
     final reference = shipment.reference?.trim();
     final title = (cargo != null && cargo.isNotEmpty)
@@ -134,13 +137,22 @@ class ShipmentCard extends StatelessWidget {
                         icon: Icons.event_outlined,
                         label: formatDate(shipment.requiredDate, locale: locale),
                       ),
-                      if (quotes > 0)
+                      if (shipment.usesAdminSelection && platformOffer?.customerPrice != null)
+                        _FactChip(
+                          icon: Icons.request_quote_outlined,
+                          label: formatAmount(
+                            platformOffer!.customerPrice,
+                            currency: platformOffer.currency ?? 'OMR',
+                          ),
+                          emphasize: status == 'published',
+                        )
+                      else if (!shipment.usesAdminSelection && quotes > 0)
                         _FactChip(
                           icon: Icons.request_quote_outlined,
                           label: i18n.t('shipment.quotationsCount', {'count': '$quotes'}),
                           emphasize: status == 'published',
                         )
-                      else if (status == 'published')
+                      else if (!shipment.usesAdminSelection && status == 'published')
                         _FactChip(
                           icon: Icons.hourglass_empty_rounded,
                           label: i18n.t('shipment.waitingQuotes'),

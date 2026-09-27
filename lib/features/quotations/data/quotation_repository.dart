@@ -33,6 +33,16 @@ class QuotationRepository {
     return Quotation.fromJson(envelope.map);
   }
 
+  Future<QuotationAcceptResult> acceptPlatformOffer(int id, {String? paymentMethod}) async {
+    final envelope = await _api.post(
+      '/platform-offers/$id/accept',
+      data: {
+        if (paymentMethod != null && paymentMethod.isNotEmpty) 'payment_method': paymentMethod,
+      },
+    );
+    return _acceptResult(envelope.map);
+  }
+
   Future<QuotationAcceptResult> accept(int id, {String? paymentMethod}) async {
     final envelope = await _api.post(
       '/quotations/$id/accept',
@@ -40,7 +50,10 @@ class QuotationRepository {
         if (paymentMethod != null && paymentMethod.isNotEmpty) 'payment_method': paymentMethod,
       },
     );
-    final map = envelope.map;
+    return _acceptResult(envelope.map);
+  }
+
+  QuotationAcceptResult _acceptResult(Map<String, dynamic> map) {
     if (asBool(map['requires_checkout'])) {
       return QuotationAcceptResult(
         requiresCheckout: true,
