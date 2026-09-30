@@ -331,6 +331,8 @@
   "trip.driver": "السائق",
   "trip.scheduledDeparture": "موعد الانطلاق",
   "trip.truck": "الشاحنة",
+  "trip.trailer": "المقطورة",
+  "trip.deliveryNote": "إذن التسليم",
   "trip.planned": "الكمية المخططة",
   "trip.delivered": "الكمية المسلَّمة",
   "trip.currentPosition": "الموقع الحالي",
@@ -371,6 +373,8 @@
   "pod.capturedAt": "وقت التسجيل",
   "pod.signature": "التوقيع",
   "pod.noPhotos": "لا توجد صور مرفقة",
+  "pod.invoice": "الفاتورة",
+  "pod.weightTicket": "تذكرة الوزن",
 
   "invoice.title": "الفواتير",
   "invoice.searchHint": "ابحث بالمرجع أو المهمة أو الرحلة",

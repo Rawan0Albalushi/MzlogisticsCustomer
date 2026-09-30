@@ -76,6 +76,18 @@ class TripDetailScreen extends ConsumerWidget {
                         trip.truck?.plateNumber ?? i18n.t('common.notAvailable'),
                         icon: Icons.local_shipping_outlined,
                       ),
+                      if (trip.trailerPlate != null && trip.trailerPlate!.isNotEmpty)
+                        EntityFact(
+                          i18n.t('trip.trailer'),
+                          trip.trailerPlate!,
+                          icon: Icons.rv_hookup_outlined,
+                        ),
+                      if (trip.deliveryNoteNumber != null && trip.deliveryNoteNumber!.isNotEmpty)
+                        EntityFact(
+                          i18n.t('trip.deliveryNote'),
+                          trip.deliveryNoteNumber!,
+                          icon: Icons.receipt_long_outlined,
+                        ),
                       if (trip.scheduledDepartureAt != null)
                         EntityFact(
                           i18n.t('trip.scheduledDeparture'),
@@ -171,6 +183,18 @@ class TripDetailScreen extends ConsumerWidget {
                           value: trip.truck?.plateNumber ?? i18n.t('common.notAvailable'),
                           icon: Icons.local_shipping_outlined,
                         ),
+                        if (trip.trailerPlate != null && trip.trailerPlate!.isNotEmpty)
+                          InfoRow(
+                            label: i18n.t('trip.trailer'),
+                            value: trip.trailerPlate!,
+                            icon: Icons.rv_hookup_outlined,
+                          ),
+                        if (trip.deliveryNoteNumber != null && trip.deliveryNoteNumber!.isNotEmpty)
+                          InfoRow(
+                            label: i18n.t('trip.deliveryNote'),
+                            value: trip.deliveryNoteNumber!,
+                            icon: Icons.receipt_long_outlined,
+                          ),
                       ],
                     ),
                   ),

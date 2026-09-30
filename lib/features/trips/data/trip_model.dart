@@ -32,6 +32,8 @@ class ProofOfDelivery {
     this.photoPaths = const [],
     this.receivedQuantity,
     this.signaturePath,
+    this.invoicePath,
+    this.weightTicketPath,
     this.notes,
     this.lat,
     this.lng,
@@ -44,6 +46,8 @@ class ProofOfDelivery {
   final List<String> photoPaths;
   final double? receivedQuantity;
   final String? signaturePath;
+  final String? invoicePath;
+  final String? weightTicketPath;
   final String? notes;
   final double? lat;
   final double? lng;
@@ -57,6 +61,8 @@ class ProofOfDelivery {
       photoPaths: asStringList(json['photo_paths']),
       receivedQuantity: asDouble(json['received_quantity']),
       signaturePath: asString(json['signature_path']),
+      invoicePath: asString(json['invoice_path']),
+      weightTicketPath: asString(json['weight_ticket_path']),
       notes: asString(json['notes']),
       lat: asDouble(json['lat']),
       lng: asDouble(json['lng']),
@@ -97,6 +103,8 @@ class Trip {
     this.jobId,
     this.jobReference,
     this.truck,
+    this.trailerPlate,
+    this.deliveryNoteNumber,
     this.driver,
     this.proofOfDelivery,
     this.createdAt,
@@ -132,6 +140,8 @@ class Trip {
   final int? jobId;
   final String? jobReference;
   final TruckSummary? truck;
+  final String? trailerPlate;
+  final String? deliveryNoteNumber;
   final UserAccount? driver;
   final ProofOfDelivery? proofOfDelivery;
   final DateTime? createdAt;
@@ -172,6 +182,8 @@ class Trip {
       jobId: asInt(job['id']),
       jobReference: asString(job['reference']),
       truck: json['truck'] is Map ? TruckSummary.fromJson(asMap(json['truck'])) : null,
+      trailerPlate: asString(json['trailer_plate']),
+      deliveryNoteNumber: asString(json['delivery_note_number']),
       driver: json['driver'] is Map ? UserAccount.fromJson(asMap(json['driver'])) : null,
       proofOfDelivery: json['proof_of_delivery'] is Map
           ? ProofOfDelivery.fromJson(asMap(json['proof_of_delivery']))

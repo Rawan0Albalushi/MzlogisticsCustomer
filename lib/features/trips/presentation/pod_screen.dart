@@ -105,6 +105,32 @@ class PodScreen extends ConsumerWidget {
                     fit: BoxFit.contain,
                   ),
                 ],
+                if (pod.invoicePath != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    i18n.t('pod.invoice'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  AuthenticatedImage(
+                    path: '/trips/${trip.id}/pod/invoice',
+                    height: 180,
+                    fit: BoxFit.contain,
+                  ),
+                ],
+                if (pod.weightTicketPath != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    i18n.t('pod.weightTicket'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  AuthenticatedImage(
+                    path: '/trips/${trip.id}/pod/weight-ticket',
+                    height: 180,
+                    fit: BoxFit.contain,
+                  ),
+                ],
               ],
             ),
           );

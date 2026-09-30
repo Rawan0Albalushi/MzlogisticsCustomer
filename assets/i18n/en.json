@@ -331,6 +331,8 @@
   "trip.driver": "Driver",
   "trip.scheduledDeparture": "Departure",
   "trip.truck": "Truck",
+  "trip.trailer": "Trailer",
+  "trip.deliveryNote": "Delivery note",
   "trip.planned": "Planned quantity",
   "trip.delivered": "Delivered quantity",
   "trip.currentPosition": "Current position",
@@ -371,6 +373,8 @@
   "pod.capturedAt": "Captured at",
   "pod.signature": "Signature",
   "pod.noPhotos": "No photos attached",
+  "pod.invoice": "Invoice",
+  "pod.weightTicket": "Weight ticket",
 
   "invoice.title": "Invoices",
   "invoice.searchHint": "Search by reference, job, or trip",
