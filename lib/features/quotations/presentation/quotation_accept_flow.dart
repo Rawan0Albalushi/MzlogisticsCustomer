@@ -7,6 +7,7 @@ import '../../../core/i18n/i18n_controller.dart';
 import '../../home/presentation/home_providers.dart';
 import '../../jobs/presentation/job_providers.dart';
 import '../../payments/data/checkout_args.dart';
+import '../../payments/data/transfer_pending_args.dart';
 import '../../payments/presentation/payment_providers.dart';
 import '../../shipments/data/platform_offer.dart';
 import '../../shipments/presentation/shipment_providers.dart';
@@ -118,6 +119,16 @@ void _openAcceptance(
   QuotationAcceptResult result, {
   required bool prepaid,
 }) {
+  if (result.awaitingTransfer) {
+    context.go(
+      '/payments/transfer',
+      extra: TransferPendingArgs(
+        reference: result.payment?.reference ?? '',
+        bankAccount: result.bankAccount,
+      ),
+    );
+    return;
+  }
   if (result.requiresCheckout && result.payment != null) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(i18n.t('payment.redirecting'))));

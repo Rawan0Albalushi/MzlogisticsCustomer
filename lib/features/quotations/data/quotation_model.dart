@@ -7,6 +7,7 @@ class Quotation {
     this.reference,
     this.shipmentRequestId,
     this.totalPrice,
+    this.pricePerTrip,
     this.currency,
     this.truckCount,
     this.truckType,
@@ -15,6 +16,7 @@ class Quotation {
     this.tripCount,
     this.quantityPerTrip,
     this.durationDays,
+    this.transportStartDate,
     this.additionalCosts,
     this.conditions,
     this.validUntil,
@@ -27,6 +29,7 @@ class Quotation {
   final String? reference;
   final int? shipmentRequestId;
   final double? totalPrice;
+  final double? pricePerTrip;
   final String? currency;
   final int? truckCount;
   final String? truckType;
@@ -35,6 +38,7 @@ class Quotation {
   final int? tripCount;
   final double? quantityPerTrip;
   final int? durationDays;
+  final DateTime? transportStartDate;
   final double? additionalCosts;
   final String? conditions;
   final DateTime? validUntil;
@@ -52,6 +56,7 @@ class Quotation {
       reference: asString(json['reference']),
       shipmentRequestId: asInt(json['shipment_request_id']),
       totalPrice: asDouble(json['total_price']),
+      pricePerTrip: asDouble(json['price_per_trip']),
       currency: asString(json['currency']) ?? 'OMR',
       truckCount: asInt(json['truck_count']),
       truckType: asString(json['truck_type']),
@@ -60,6 +65,7 @@ class Quotation {
       tripCount: asInt(json['trip_count']),
       quantityPerTrip: asDouble(json['quantity_per_trip']),
       durationDays: asInt(json['duration_days']),
+      transportStartDate: asDateTime(json['transport_start_date']),
       additionalCosts: asDouble(json['additional_costs']),
       conditions: asString(json['conditions']),
       validUntil: asDateTime(json['valid_until']),

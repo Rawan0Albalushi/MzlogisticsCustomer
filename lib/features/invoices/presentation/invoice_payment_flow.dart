@@ -6,6 +6,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/i18n/i18n_controller.dart';
 import '../../jobs/presentation/job_providers.dart';
 import '../../payments/data/checkout_args.dart';
+import '../../payments/data/transfer_pending_args.dart';
 import '../../payments/presentation/payment_providers.dart';
 import '../../payments/presentation/select_payment_method_dialog.dart';
 import '../../quotations/data/quotation_accept_result.dart';
@@ -47,6 +48,17 @@ Future<void> startInvoicePayment({
 }
 
 void _openPayment(BuildContext context, I18nBundle i18n, QuotationAcceptResult result) {
+  if (result.awaitingTransfer) {
+    context.go(
+      '/payments/transfer',
+      extra: TransferPendingArgs(
+        reference: result.payment?.reference ?? '',
+        bankAccount: result.bankAccount,
+        invoicePayment: true,
+      ),
+    );
+    return;
+  }
   if (result.requiresCheckout && result.payment != null) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(i18n.t('payment.redirecting'))),

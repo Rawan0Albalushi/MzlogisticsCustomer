@@ -363,6 +363,16 @@ class _QuotationCard extends StatelessWidget {
                       color: AppColors.navy,
                     ),
                   ),
+                  if (quotation.pricePerTrip != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${i18n.t('quotation.pricePerTrip')}: ${formatAmount(quotation.pricePerTrip, currency: quotation.currency ?? 'OMR')}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   _line(
                     i18n.t('quotation.trucks'),
@@ -387,6 +397,10 @@ class _QuotationCard extends StatelessWidget {
                   _line(
                     i18n.t('quotation.duration'),
                     '${quotation.durationDays ?? '—'}',
+                  ),
+                  _line(
+                    i18n.t('quotation.transportStart'),
+                    formatDate(quotation.transportStartDate, locale: locale),
                   ),
                   _line(
                     i18n.t('quotation.extra'),
@@ -477,6 +491,15 @@ class QuotationDetailScreen extends ConsumerWidget {
                       label: i18n.status(status),
                     ),
                     facts: [
+                      if (quotation.pricePerTrip != null)
+                        EntityFact(
+                          i18n.t('quotation.pricePerTrip'),
+                          formatAmount(
+                            quotation.pricePerTrip,
+                            currency: quotation.currency ?? 'OMR',
+                          ),
+                          icon: Icons.route_outlined,
+                        ),
                       EntityFact(
                         i18n.t('quotation.price'),
                         formatAmount(
@@ -494,6 +517,11 @@ class QuotationDetailScreen extends ConsumerWidget {
                         i18n.t('quotation.duration'),
                         '${quotation.durationDays ?? '—'}',
                         icon: Icons.schedule_outlined,
+                      ),
+                      EntityFact(
+                        i18n.t('quotation.transportStart'),
+                        formatDate(quotation.transportStartDate, locale: locale),
+                        icon: Icons.event_outlined,
                       ),
                     ],
                   ),

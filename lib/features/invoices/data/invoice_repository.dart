@@ -5,6 +5,7 @@ import '../../../core/providers.dart';
 import '../../../core/utils/json_utils.dart';
 import '../../../shared/models/pagination_meta.dart';
 import '../../jobs/data/job_model.dart';
+import '../../payments/data/bank_account.dart';
 import '../../payments/data/payment_model.dart';
 import '../../quotations/data/quotation_accept_result.dart';
 import 'invoice_model.dart';
@@ -48,6 +49,15 @@ class InvoiceRepository {
       data: {'payment_method': paymentMethod},
     );
     final map = envelope.map;
+    if (asBool(map['awaiting_transfer'])) {
+      return QuotationAcceptResult(
+        requiresCheckout: false,
+        awaitingTransfer: true,
+        payment: map['payment'] is Map ? Payment.fromJson(asMap(map['payment'])) : null,
+        bankAccount: BankAccount.fromJson(map['bank_account'] is Map ? asMap(map['bank_account']) : null),
+        job: map['job'] is Map ? TransportJob.fromJson(asMap(map['job'])) : null,
+      );
+    }
     if (asBool(map['requires_checkout'])) {
       return QuotationAcceptResult(
         requiresCheckout: true,

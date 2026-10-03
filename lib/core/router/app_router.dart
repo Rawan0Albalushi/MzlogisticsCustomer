@@ -14,6 +14,8 @@ import '../../features/jobs/presentation/jobs_list_screen.dart';
 import '../../features/notifications/presentation/notification_providers.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/payments/data/checkout_args.dart';
+import '../../features/payments/data/transfer_pending_args.dart';
+import '../../features/payments/presentation/transfer_pending_screen.dart';
 import '../../features/payments/presentation/billing_screen.dart';
 import '../../features/payments/presentation/payment_checkout_screen.dart';
 import '../../features/payments/presentation/payment_result_screens.dart';
@@ -206,6 +208,14 @@ List<RouteBase> customerRoutes({
               pageBuilder: (context, state) =>
                   section(state, const PaymentsScreen()),
               routes: [
+                GoRoute(
+                  path: 'transfer',
+                  parentNavigatorKey: rootNavigatorKey,
+                  pageBuilder: (context, state) => forward(
+                    state,
+                    TransferPendingScreen(args: TransferPendingArgs.fromExtra(state.extra)),
+                  ),
+                ),
                 GoRoute(
                   path: 'checkout/:id',
                   parentNavigatorKey: rootNavigatorKey,

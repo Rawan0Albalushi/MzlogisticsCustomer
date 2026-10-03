@@ -304,6 +304,10 @@ class ShipmentPlatformOfferSection extends StatelessWidget {
             label: i18n.t('quotation.duration'),
             value: '${offer.durationDays ?? '—'}',
           ),
+          InfoRow(
+            label: i18n.t('quotation.transportStart'),
+            value: formatDate(offer.transportStartDate, locale: i18n.locale.languageCode),
+          ),
           if ((offer.conditions ?? '').trim().isNotEmpty)
             InfoRow(
               label: i18n.t('quotation.conditions'),

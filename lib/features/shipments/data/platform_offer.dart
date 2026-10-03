@@ -12,6 +12,7 @@ class PlatformOffer {
     this.truckTypeLabel,
     this.tripCount,
     this.durationDays,
+    this.transportStartDate,
     this.conditions,
     this.validUntil,
     this.status,
@@ -27,6 +28,7 @@ class PlatformOffer {
   final String? truckTypeLabel;
   final int? tripCount;
   final int? durationDays;
+  final DateTime? transportStartDate;
   final String? conditions;
   final DateTime? validUntil;
   final String? status;
@@ -45,6 +47,7 @@ class PlatformOffer {
       truckTypeLabel: asString(json['truck_type_label']),
       tripCount: asInt(json['trip_count']),
       durationDays: asInt(json['duration_days']),
+      transportStartDate: asDateTime(json['transport_start_date']),
       conditions: asString(json['conditions']),
       validUntil: asDateTime(json['valid_until']),
       status: asString(json['status']),
