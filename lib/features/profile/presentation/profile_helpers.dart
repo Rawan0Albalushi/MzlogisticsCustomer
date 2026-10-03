@@ -23,17 +23,6 @@ String displayOrDash(I18nBundle i18n, String? value) {
   return trimmed.isEmpty ? i18n.t('common.dash') : trimmed;
 }
 
-String accountTypeLabel(I18nBundle i18n, String? type) {
-  switch (type) {
-    case 'individual':
-      return i18n.t('auth.individual');
-    case 'company':
-      return i18n.t('auth.company');
-    default:
-      return type == null || type.isEmpty ? i18n.t('common.dash') : type;
-  }
-}
-
 String mapProfileError(Object error, I18nBundle i18n, List<String> fields) {
   if (error is ApiException) {
     if (error.message == 'network') return i18n.t('common.networkError');

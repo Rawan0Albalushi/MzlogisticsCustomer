@@ -13,8 +13,7 @@ class RegisterCustomerPayload {
     required this.email,
     required this.password,
     required this.passwordConfirmation,
-    required this.accountType,
-    this.companyName,
+    required this.companyName,
     this.phone,
     this.locale = 'en',
   });
@@ -23,8 +22,7 @@ class RegisterCustomerPayload {
   final String email;
   final String password;
   final String passwordConfirmation;
-  final String accountType;
-  final String? companyName;
+  final String companyName;
   final String? phone;
   final String locale;
 
@@ -34,8 +32,8 @@ class RegisterCustomerPayload {
       'email': email,
       'password': password,
       'password_confirmation': passwordConfirmation,
-      'account_type': accountType,
-      if (companyName != null && companyName!.isNotEmpty) 'company_name': companyName,
+      'account_type': 'company',
+      'company_name': companyName,
       if (phone != null && phone!.isNotEmpty) 'phone': phone,
       'locale': locale,
     };

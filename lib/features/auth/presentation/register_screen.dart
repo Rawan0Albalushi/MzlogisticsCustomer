@@ -26,7 +26,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _company = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
-  String _accountType = 'individual';
   bool _obscure = true;
   bool _submitting = false;
   String? _error;
@@ -55,8 +54,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               email: _email.text.trim(),
               password: _password.text,
               passwordConfirmation: _confirm.text,
-              accountType: _accountType,
-              companyName: _accountType == 'company' ? _company.text.trim() : null,
+              companyName: _company.text.trim(),
               phone: _phone.text.trim(),
               locale: ref.read(i18nControllerProvider).value?.locale.languageCode ?? 'en',
             ),
@@ -93,15 +91,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SegmentedButton<String>(
-              segments: [
-                ButtonSegment(value: 'individual', label: Text(i18n.t('auth.individual'))),
-                ButtonSegment(value: 'company', label: Text(i18n.t('auth.company'))),
-              ],
-              selected: {_accountType},
-              onSelectionChanged: (value) => setState(() => _accountType = value.first),
+            AppTextField(
+              label: i18n.t('auth.companyName'),
+              controller: _company,
+              textInputAction: TextInputAction.next,
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? i18n.t('auth.companyRequired') : null,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             AppTextField(
               label: i18n.t('auth.fullName'),
               controller: _name,
@@ -128,16 +125,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
             ),
-            if (_accountType == 'company') ...[
-              const SizedBox(height: 14),
-              AppTextField(
-                label: i18n.t('auth.companyName'),
-                controller: _company,
-                textInputAction: TextInputAction.next,
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? i18n.t('auth.companyRequired') : null,
-              ),
-            ],
             const SizedBox(height: 14),
             AppTextField(
               label: i18n.t('auth.password'),

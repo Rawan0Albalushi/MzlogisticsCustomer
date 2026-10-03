@@ -206,14 +206,6 @@ class ProfileOrganizationCard extends StatelessWidget {
           value: displayOrDash(i18n, org.displayName(locale)),
           showChevron: false,
         ),
-        _SettingRow(
-          icon: org.accountType == 'company'
-              ? Icons.business_outlined
-              : Icons.person_outline,
-          title: i18n.t('profile.accountType'),
-          value: accountTypeLabel(i18n, org.accountType),
-          showChevron: false,
-        ),
         if (cr.isNotEmpty)
           _SettingRow(
             icon: Icons.badge_outlined,

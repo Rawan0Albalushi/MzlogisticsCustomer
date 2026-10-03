@@ -127,7 +127,7 @@
   "auth.login": "Sign in",
   "auth.register": "Create account",
   "auth.registerTitle": "Open a customer account",
-  "auth.registerSubtitle": "Individuals and companies can request freight in minutes.",
+  "auth.registerSubtitle": "Register your company to request freight in minutes.",
   "auth.forgotPassword": "Forgot password",
   "auth.forgotSubtitle": "Enter your email and we will send a reset link if the account exists.",
   "auth.sendReset": "Send reset link",

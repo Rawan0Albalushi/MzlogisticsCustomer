@@ -29,7 +29,7 @@ class ShipmentRequest {
     this.customer,
     this.quotations = const [],
     this.quotationsCount,
-    this.offerSelectionMode = 'customer',
+    this.offerSelectionMode = 'admin',
     this.platformOffer,
     this.paymentTerms = const PaymentTermsSnapshot(),
     this.createdAt,
@@ -114,7 +114,7 @@ class ShipmentRequest {
           .map((item) => Quotation.fromJson(asMap(item)))
           .toList(),
       quotationsCount: asInt(json['quotations_count']),
-      offerSelectionMode: asString(json['offer_selection_mode']) ?? 'customer',
+      offerSelectionMode: asString(json['offer_selection_mode']) ?? 'admin',
       platformOffer: json['platform_offer'] is Map
           ? PlatformOffer.fromJson(asMap(json['platform_offer']))
           : null,

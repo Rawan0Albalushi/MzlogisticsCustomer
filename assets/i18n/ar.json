@@ -127,7 +127,7 @@
   "auth.login": "تسجيل الدخول",
   "auth.register": "إنشاء حساب",
   "auth.registerTitle": "افتح حساب عميل",
-  "auth.registerSubtitle": "يمكن للأفراد والشركات طلب الشحن خلال دقائق.",
+  "auth.registerSubtitle": "سجّل شركتك لطلب الشحن خلال دقائق.",
   "auth.forgotPassword": "نسيت كلمة المرور",
   "auth.forgotSubtitle": "أدخل بريدك وسنرسل رابط إعادة التعيين إن وُجد الحساب.",
   "auth.sendReset": "إرسال رابط إعادة التعيين",
