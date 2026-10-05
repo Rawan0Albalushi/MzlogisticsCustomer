@@ -80,6 +80,10 @@
 		<string>http</string>
 		<string>mzlogistics</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo of the bank transfer receipt.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a photo of the bank transfer receipt.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

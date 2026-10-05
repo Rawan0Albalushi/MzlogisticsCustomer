@@ -39,6 +39,9 @@ class ApiClient {
           }
           options.headers['Accept-Language'] = _localeReader();
           options.headers['X-Payment-Callback-Base'] = AppConstants.apiOrigin;
+          if (options.data is FormData) {
+            options.headers.remove(Headers.contentTypeHeader);
+          }
           handler.next(options);
         },
         onError: (error, handler) async {

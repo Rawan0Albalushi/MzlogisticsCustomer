@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/i18n_controller.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/pagination_meta.dart';
@@ -11,7 +13,9 @@ import '../../../shared/widgets/app_list_card.dart';
 import '../../../shared/widgets/async_body.dart';
 import '../../../shared/widgets/page_scaffold.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../data/bank_account.dart';
 import '../data/payment_model.dart';
+import '../data/transfer_pending_args.dart';
 import 'payment_providers.dart';
 
 enum _PaymentFilter { all, pending, paid, failed }
@@ -88,6 +92,20 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
     });
   }
 
+  Future<void> _openReceipt(Payment payment) async {
+    await context.push(
+      '/payments/transfer',
+      extra: TransferPendingArgs(
+        paymentId: payment.id,
+        reference: payment.reference ?? '',
+        bankAccount: const BankAccount(),
+        receiptUploaded: payment.hasReceipt,
+      ),
+    );
+    if (!mounted) return;
+    ref.invalidate(paymentsProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final i18n = ref.i18n;
@@ -131,6 +149,8 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
             child: AppTableCard(
               header: toolbar,
               child: DataTable(
+                dataRowMinHeight: 64,
+                dataRowMaxHeight: 84,
                 columns: [
                   DataColumn(label: Text(i18n.t('common.reference'))),
                   DataColumn(label: Text(i18n.t('common.amount'))),
@@ -145,7 +165,13 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                       cells: [
                         DataCell(Text(payment.reference ?? '—')),
                         DataCell(Text(formatAmount(payment.amount, currency: payment.currency ?? 'OMR'))),
-                        DataCell(Text(payment.method ?? '—')),
+                        DataCell(_MethodCell(
+                          method: payment.method,
+                          action: payment.canUploadReceipt
+                              ? i18n.t(payment.hasReceipt ? 'payment.changeReceipt' : 'payment.uploadReceipt')
+                              : null,
+                          onUpload: payment.canUploadReceipt ? () => _openReceipt(payment) : null,
+                        )),
                         DataCell(StatusBadge(status: payment.status ?? '', label: i18n.status(payment.status))),
                         DataCell(Text(formatDateTime(payment.paidAt, locale: i18n.locale.languageCode))),
                         DataCell(Text(payment.gateway ?? payment.gatewayReference ?? '—')),
@@ -165,12 +191,82 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
               embedded: true,
               title: payment.reference ?? i18n.t('payment.title'),
               subtitle: payment.method ?? '',
+              subtitleWidget: payment.canUploadReceipt
+                  ? _ReceiptAction(
+                      method: payment.method,
+                      label: i18n.t(payment.hasReceipt ? 'payment.changeReceipt' : 'payment.uploadReceipt'),
+                    )
+                  : null,
               meta: formatAmount(payment.amount, currency: payment.currency ?? 'OMR'),
               trailing: StatusBadge(status: payment.status ?? '', label: i18n.status(payment.status)),
+              onTap: payment.canUploadReceipt ? () => _openReceipt(payment) : null,
             );
           },
         );
       },
+    );
+  }
+}
+
+class _MethodCell extends StatelessWidget {
+  const _MethodCell({required this.method, required this.action, required this.onUpload});
+
+  final String? method;
+  final String? action;
+  final VoidCallback? onUpload;
+
+  @override
+  Widget build(BuildContext context) {
+    if (action == null || onUpload == null) {
+      return Text(method ?? '—');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(method ?? '—'),
+        TextButton(
+          onPressed: onUpload,
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            alignment: AlignmentDirectional.centerStart,
+          ),
+          child: Text(action!),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReceiptAction extends StatelessWidget {
+  const _ReceiptAction({required this.method, required this.label});
+
+  final String? method;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (method != null && method!.isNotEmpty)
+          Text(
+            method!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: text.bodySmall?.copyWith(color: AppColors.muted, height: 1.35),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: text.labelLarge?.copyWith(color: AppColors.navy, fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

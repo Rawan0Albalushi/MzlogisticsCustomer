@@ -123,6 +123,7 @@ void _openAcceptance(
     context.go(
       '/payments/transfer',
       extra: TransferPendingArgs(
+        paymentId: result.payment?.id,
         reference: result.payment?.reference ?? '',
         bankAccount: result.bankAccount,
       ),

@@ -52,6 +52,7 @@ void _openPayment(BuildContext context, I18nBundle i18n, QuotationAcceptResult r
     context.go(
       '/payments/transfer',
       extra: TransferPendingArgs(
+        paymentId: result.payment?.id,
         reference: result.payment?.reference ?? '',
         bankAccount: result.bankAccount,
         invoicePayment: true,

@@ -16,6 +16,7 @@ class Payment {
     this.paymentLink,
     this.paidAt,
     this.createdAt,
+    this.hasReceipt = false,
   });
 
   final int id;
@@ -32,6 +33,10 @@ class Payment {
   final String? paymentLink;
   final DateTime? paidAt;
   final DateTime? createdAt;
+  final bool hasReceipt;
+
+  bool get canUploadReceipt =>
+      method == 'bank_transfer' && (status == 'pending' || status == 'processing');
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     return Payment(
@@ -49,6 +54,7 @@ class Payment {
       paymentLink: asString(json['payment_link']),
       paidAt: asDateTime(json['paid_at']),
       createdAt: asDateTime(json['created_at']),
+      hasReceipt: asBool(json['has_receipt']),
     );
   }
 }
