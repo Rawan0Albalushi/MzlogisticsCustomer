@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppConstants {
   AppConstants._();
 
@@ -9,16 +11,24 @@ class AppConstants {
   static const String devLanHost = String.fromEnvironment('DEV_LAN_HOST');
 
   static const int apiPort = 8000;
+  static const String lanApiHost = '192.168.100.94';
 
   static String get apiHost {
     if (_apiBaseUrlFromEnv.isNotEmpty) {
       return Uri.parse(_apiBaseUrlFromEnv).host;
     }
     if (devLanHost.isNotEmpty) return devLanHost;
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host == 'localhost' || host == '127.0.0.1') {
+        return '127.0.0.1';
+      }
+      if (host.isNotEmpty) return host;
+    }
     // Physical device on the same Wi-Fi. Override with:
     // flutter run --dart-define=DEV_LAN_HOST=10.0.2.2  (Android emulator)
     // USB debugging: adb reverse tcp:8000 tcp:8000 and DEV_LAN_HOST=127.0.0.1
-    return '192.168.100.197';
+    return lanApiHost;
   }
 
   static String get apiBaseUrl {
